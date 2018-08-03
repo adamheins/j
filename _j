@@ -1,0 +1,7 @@
+#compdef j
+
+# We don't want to show the descriptions.
+# zstyle ':completion:*:*:j:*:*' verbose yes
+
+keys=($(_j_print))
+_values 'keys' $keys
