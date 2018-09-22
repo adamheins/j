@@ -9,6 +9,8 @@ if [ -h $0 ]; then
 fi
 
 j() {
+  # First allow the user to select the desired path, then cd to it.
+  $j_dir/j.py -s $1
   cd $($j_dir/j.py $1)
 }
 
