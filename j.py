@@ -1,13 +1,14 @@
-#!/usr/bin/env python
-from __future__ import print_function
-
+#!/usr/bin/env python3
 import curses
+import fnmatch
 import os
 import pickle
 import sys
 
 
-J_PICKLE = os.path.expanduser('~/.j.pickle')
+J_DIR = os.path.expanduser('~/.j')
+J_PICKLE = os.path.join(J_DIR, 'data.pickle')
+J_IGNORE = os.path.join(J_DIR, 'ignore')
 
 
 def selector(screen, items):
@@ -52,6 +53,20 @@ def remove_stale_paths(dirmap, key):
     return True
 
 
+def check_if_ignored(dir_path, ignore_path):
+    ''' Returns True if the dir should be ignored as per the ignore file, False
+        otherwise. '''
+    if not os.path.exists(ignore_path):
+        return False
+    with open(ignore_path, 'r') as f:
+        lines = f.read().strip().split('\n')
+    patterns = [line for line in lines if line.strip()[0] != '#']
+    for pattern in patterns:
+        if fnmatch.fnmatch(dir_path, pattern):
+            return True
+    return False
+
+
 def load(pickle_path):
     ''' Load the directory dictionary from pickle. '''
     if os.path.exists(pickle_path):
@@ -72,6 +87,10 @@ def add(dir_path, dirmap):
         path. '''
     basename = os.path.basename(dir_path)
     remove_stale_paths(dirmap, basename)
+
+    # If this directory path is being ignored, don't add it.
+    if check_if_ignored(dir_path, J_IGNORE):
+        return
 
     if basename in dirmap:
         # Add the path to the front of the list in the map, removing it if it
@@ -108,23 +127,32 @@ def main():
     if len(sys.argv) == 1:
         print('')
 
+    args = sys.argv[1:]
+
     # Add directory.
-    elif sys.argv[1] == '-a':
+    if args[0] == '-a':
         dirmap = load(J_PICKLE)
         cwd = os.getcwd()
         add(cwd, dirmap)
         save(J_PICKLE, dirmap)
 
-    # Print all directories.
-    elif sys.argv[1] == '-p':
+    # Print all directories. TODO this can go to -l
+    elif args[0] == '-p':
         dirmap = load(J_PICKLE)
         print('\n'.join(dirmap.keys()))
 
-    elif sys.argv[1] == '-s':
+    # Select a directory.
+    elif args[0] == '-s':
         dirmap = load(J_PICKLE)
-        basename = sys.argv[2]
+        basename = args[1]
         select(basename, dirmap)
         save(J_PICKLE, dirmap)
+
+    # TODO this functionality requires modification of the pickle format.
+    elif args[0] == '--pin':
+        pass
+    elif args[0] == '--unpin':
+        pass
 
     # Default is print path of directory passed as first argument.
     else:
