@@ -37,13 +37,14 @@ def selector(screen, items):
 
 
 def remove_stale_paths(dirmap, key):
-    ''' Remove paths pointed to by key that no longer exist. '''
+    ''' Remove paths pointed to by key that no longer exist or that are now
+        ignored. '''
     if key not in dirmap:
         return
 
-    # Remove paths for this key that no longer exist.
+    # Remove paths for this key that no longer exist or are ignored.
     for idx, path in enumerate(dirmap[key]):
-        if not os.path.exists(path):
+        if not os.path.exists(path) or path_is_ignored(path, J_IGNORE):
             del dirmap[key][idx]
 
     # If there are no paths left, remove the key entirely.
@@ -53,7 +54,7 @@ def remove_stale_paths(dirmap, key):
     return True
 
 
-def check_if_ignored(dir_path, ignore_path):
+def path_is_ignored(dir_path, ignore_path):
     ''' Returns True if the dir should be ignored as per the ignore file, False
         otherwise. '''
     if not os.path.exists(ignore_path):
@@ -89,7 +90,7 @@ def add(dir_path, dirmap):
     remove_stale_paths(dirmap, basename)
 
     # If this directory path is being ignored, don't add it.
-    if check_if_ignored(dir_path, J_IGNORE):
+    if path_is_ignored(dir_path, J_IGNORE):
         return
 
     if basename in dirmap:
