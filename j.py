@@ -11,6 +11,7 @@ J_PICKLE = os.path.join(J_DIR, 'data.pickle')
 J_IGNORE = os.path.join(J_DIR, 'ignore')
 
 
+# Curses CLI key codes.
 UP_KEYS = [ord('k'), curses.KEY_UP]
 DOWN_KEYS = [ord('j'), curses.KEY_DOWN]
 QUIT_KEYS = [ord('q')]
@@ -18,47 +19,14 @@ SELECT_KEYS = [curses.KEY_ENTER, 10, 13]
 DELETE_KEYS = [ord('d')]
 
 
-def selector(screen, items, purge=False):
-    ''' Open a curses selector to choose a desired item. '''
-    curses.curs_set(False)
-    idx = 0
-
-    while True:
-        for index, item in enumerate(items):
-            if index == idx:
-                style = curses.A_REVERSE
-            else:
-                style = curses.A_NORMAL
-            screen.addstr(index, 0, item, style)
-
-        screen.refresh()
-        ch = screen.getch()
-
-        # Navigation
-        if ch in DOWN_KEYS:
-            idx = (idx + 1) % len(items)
-        elif ch in UP_KEYS:
-            idx = (idx - 1) % len(items)
-        elif ch in QUIT_KEYS:
-            return -1
-
-        # Select or purge an item.
-        else:
-            if purge and ch in DELETE_KEYS:
-                del items[idx]
-                if len(items) == 0:
-                    return -1
-            elif ch in SELECT_KEYS:
-                return idx
-
-
 class Lister(object):
+    ''' Curses CLI for interacting with list of paths. '''
     def __init__(self, items):
-        curses.curs_set(False)
         self.items = items
         self.index = 0
 
-    def refresh(self, screen):
+    def _refresh(self, screen):
+        ''' Refresh the screen and wait for key input. '''
         for index, item in enumerate(self.items):
             if index == self.index:
                 style = curses.A_REVERSE
@@ -69,7 +37,8 @@ class Lister(object):
         screen.refresh()
         return screen.getch()
 
-    def navigate(self, key_code):
+    def _navigate(self, key_code):
+        ''' Screen navigation. '''
         if key_code in DOWN_KEYS:
             self.index = (self.index + 1) % len(self.items)
         elif key_code in UP_KEYS:
@@ -79,9 +48,11 @@ class Lister(object):
         return True
 
     def select(self, screen):
+        ''' Select an item from the list. '''
+        curses.curs_set(False)
         while True:
-            key_code = self.refresh(screen)
-            if self.navigate(key_code):
+            key_code = self._refresh(screen)
+            if self._navigate(key_code):
                 continue
             elif key_code in QUIT_KEYS:
                 return -1
@@ -89,9 +60,11 @@ class Lister(object):
                 return self.index
 
     def purge(self, screen):
+        ''' Delete items from the list. '''
+        curses.curs_set(False)
         while True:
-            key_code = self.refresh(screen)
-            if self.navigate(key_code):
+            key_code = self._refresh(screen)
+            if self._navigate(key_code):
                 continue
             elif key_code in QUIT_KEYS:
                 return self.items
@@ -101,6 +74,7 @@ class Lister(object):
                     return self.items
                 elif self.index > len(self.items) - 1:
                     self.index -= 1
+                screen.erase()
 
 
 def remove_stale_paths(dirmap, key):
@@ -170,10 +144,13 @@ def add_dir_path(dir_path, dirmap):
         dirmap[basename] = [dir_path]
 
 
-def select(basename, dirmap):
+def select_path(basename, dirmap):
     ''' Select the desired path when multiple exist. It is necessary to
         separate this from the get function so that it can be called separately
-        from the shell wrapper script. '''
+        from the shell wrapper script.
+
+        Return False if there were multiple items from which to select but the
+        user quit, True otherwise. '''
     remove_stale_paths(dirmap, basename)
     if basename in dirmap and len(dirmap[basename]) > 1:
         lister = Lister(dirmap[basename])
@@ -183,6 +160,19 @@ def select(basename, dirmap):
             dir_path = dirmap[basename][idx]
             del dirmap[basename][idx]
             dirmap[basename].insert(0, dir_path)
+            return True
+        return False
+    return True
+
+
+def purge_paths(basename, dirmap):
+    ''' Open a curses CLI to allow the user to purge paths from the directory
+        list. '''
+    remove_stale_paths(dirmap, basename)
+    if basename in dirmap:
+        lister = Lister(dirmap[basename])
+        items = curses.wrapper(lister.purge)
+        dirmap[basename] = items
 
 
 def get_dir_path(basename, dirmap):
@@ -196,7 +186,7 @@ def get_dir_path(basename, dirmap):
 def main():
     if len(sys.argv) == 1:
         print('')
-        return
+        return 1
 
     args = sys.argv[1:]
 
@@ -223,7 +213,14 @@ def main():
     if args[0] == '--select':
         dirmap = load(J_PICKLE)
         basename = args[1]
-        select(basename, dirmap)
+        did_selection = select_path(basename, dirmap)
+        save(J_PICKLE, dirmap)
+        return 0 if did_selection else 1
+
+    elif args[0] == '--purge':
+        dirmap = load(J_PICKLE)
+        basename = args[1]
+        purge_paths(basename, dirmap)
         save(J_PICKLE, dirmap)
 
     elif args[0] == '--list':
@@ -243,7 +240,8 @@ def main():
     else:
         print('Unrecognized command.')
         return 1
+    return 0
 
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main())

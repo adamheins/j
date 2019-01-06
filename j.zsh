@@ -11,14 +11,20 @@ fi
 J_EXE=$J_SRC_DIR/j.py
 
 j() {
+  if [ -z $1 ]; then
+    cd
+    return
+  fi
   case $1 in
     -l|--list)
       $J_EXE --list $2
     ;;
+    --purge)
+      $J_EXE --purge $2
+    ;;
     *)
       # First allow the user to select the desired path, then cd to it.
-      $J_EXE --select $1
-      cd $($J_EXE --print $1)
+      $J_EXE --select $1 && cd $($J_EXE --print $1)
     ;;
   esac
 }
