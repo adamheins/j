@@ -1,25 +1,35 @@
 
 # Get script's directory.
-j_dir=${0:a:h}
+J_SRC_DIR=${0:a:h}
 
 # If the script is a symlink, we want to follow the symlink back to we can
 # access the executable.
 if [ -h $0 ]; then
-  j_dir=$(dirname $(readlink $0))
+  J_SRC_DIR=$(dirname $(readlink $0))
 fi
 
+J_EXE=$J_SRC_DIR/j.py
+
 j() {
-  # First allow the user to select the desired path, then cd to it.
-  $j_dir/j.py -s $1
-  cd $($j_dir/j.py $1)
+  case $1 in
+    -l|--list)
+      $J_EXE --list $2
+    ;;
+    *)
+      # First allow the user to select the desired path, then cd to it.
+      $J_EXE --select $1
+      cd $($J_EXE --print $1)
+    ;;
+  esac
 }
 
+# Prints all keys. Used by the completion system.
 _j_print() {
-  $j_dir/j.py -p
+  $J_EXE --list-all-keys
 }
 
 _j_precmd() {
-  $j_dir/j.py -a
+  $J_EXE --add-cwd
 }
 
 # Add to list of precmd functions.
