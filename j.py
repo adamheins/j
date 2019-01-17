@@ -161,7 +161,9 @@ def select_path(basename, dirmap):
             del dirmap[basename][idx]
             dirmap[basename].insert(0, dir_path)
             return True
-        return False
+        # Only return False if the user quit the selection process.
+        if idx < 0:
+            return False
     return True
 
 
