@@ -19,8 +19,16 @@ j() {
     -l|--list)
       $J_EXE --list $2
     ;;
-    --purge)
+    -p|--purge)
       $J_EXE --purge $2
+    ;;
+    -h|--help)
+      echo 'j [options] dir'
+      echo ''
+      echo 'options:'
+      echo '  -h, --help   show this help message and exit'
+      echo '  -l, --list   list all entries for dir'
+      echo '  -p, --purge  interactively delete entries for dir'
     ;;
     *)
       # First allow the user to select the desired path, then cd to it.
