@@ -18,11 +18,15 @@ QUIT_KEYS = [ord('q')]
 SELECT_KEYS = [curses.KEY_ENTER, 10, 13]
 DELETE_KEYS = [ord('d')]
 
+SELECT_INSTR = 'Use <j>/<k> or <up>/<down> to navigate, <Enter> to select, <q> to quit.'
+PURGE_INSTR = 'Use <j>/<k> or <up>/<down> to navigate, <d> to delete, <q> to quit.'
+
 
 class Lister(object):
     ''' Curses CLI for interacting with list of paths. '''
-    def __init__(self, items):
+    def __init__(self, items, instructions):
         self.items = items
+        self.instructions = instructions
         self.index = 0
 
     def _refresh(self, screen):
@@ -32,7 +36,9 @@ class Lister(object):
                 style = curses.A_REVERSE
             else:
                 style = curses.A_NORMAL
-            screen.addstr(index, 0, item, style)
+            screen.addstr(index+2, 0, item, style)
+
+        screen.addstr(0, 0, self.instructions, curses.A_BOLD)
 
         screen.refresh()
         return screen.getch()
@@ -153,7 +159,7 @@ def select_path(basename, dirmap):
         user quit, True otherwise. '''
     remove_stale_paths(dirmap, basename)
     if basename in dirmap and len(dirmap[basename]) > 1:
-        lister = Lister(dirmap[basename])
+        lister = Lister(dirmap[basename], SELECT_INSTR)
         idx = curses.wrapper(lister.select)
         if idx > 0:
             # Selected path is inserted at the front of list.
@@ -172,7 +178,7 @@ def purge_paths(basename, dirmap):
         list. '''
     remove_stale_paths(dirmap, basename)
     if basename in dirmap:
-        lister = Lister(dirmap[basename])
+        lister = Lister(dirmap[basename], PURGE_INSTR)
         items = curses.wrapper(lister.purge)
         dirmap[basename] = items
 
