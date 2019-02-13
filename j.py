@@ -192,7 +192,9 @@ def get_dir_path(basename, dirmap):
 
 
 def main():
+    return
     if len(sys.argv) == 1:
+        print('no thanks')
         print('')
         return 1
 
@@ -201,7 +203,13 @@ def main():
     # Add directory.
     if args[0] == '--add-cwd':
         dirmap = load(J_PICKLE)
-        cwd = os.getcwd()
+        # It is possible to end up in a directory that doesn't actually exist
+        # when another process removes it or a parent. One example is checking
+        # out a git branch with a different directory structure.
+        try:
+            cwd = os.getcwd()
+        except FileNotFoundError:
+            return 1
         add_dir_path(cwd, dirmap)
         save(J_PICKLE, dirmap)
         return 0

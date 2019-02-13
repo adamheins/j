@@ -43,7 +43,10 @@ _j_print() {
 }
 
 _j_precmd() {
-  $J_EXE --add-cwd
+  # Abort if the CWD doesn't exist (i.e. it was removed by some other process).
+  # This avoids error spam in the terminal.
+  [ -d $PWD ] || return
+  $J_EXE  --add-cwd
 }
 
 # Add to list of precmd functions.
