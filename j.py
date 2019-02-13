@@ -192,7 +192,6 @@ def get_dir_path(basename, dirmap):
 
 
 def main():
-    return
     if len(sys.argv) == 1:
         print('no thanks')
         print('')
