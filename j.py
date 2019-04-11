@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import curses
 import fnmatch
+import json
 import os
 import pickle
 import sys
@@ -9,6 +10,7 @@ import sys
 J_DIR = os.path.expanduser('~/.j')
 J_PICKLE = os.path.join(J_DIR, 'data.pickle')
 J_IGNORE = os.path.join(J_DIR, 'ignore')
+J_JSON_PATH = os.path.join(J_DIR, 'data.json')
 
 
 # Curses CLI key codes.
@@ -20,6 +22,20 @@ DELETE_KEYS = [ord('d')]
 
 SELECT_INSTR = 'Use <j>/<k> or <up>/<down> to navigate, <Enter> to select, <q> to quit.'
 PURGE_INSTR = 'Use <j>/<k> or <up>/<down> to navigate, <d> to delete, <q> to quit.'
+
+
+def path_is_ignored(dir_path, ignore_path):
+    ''' Returns True if the dir should be ignored as per the ignore file, False
+        otherwise. '''
+    if not os.path.exists(ignore_path):
+        return False
+    with open(ignore_path, 'r') as f:
+        lines = f.read().strip().split('\n')
+    patterns = [line for line in lines if line.strip()[0] != '#']
+    for pattern in patterns:
+        if fnmatch.fnmatch(dir_path, pattern):
+            return True
+    return False
 
 
 class Lister(object):
@@ -83,125 +99,120 @@ class Lister(object):
                 screen.erase()
 
 
-def remove_stale_paths(dirmap, key):
-    ''' Remove paths pointed to by key that no longer exist or that are now
-        ignored. '''
-    if key not in dirmap:
-        return
+class DirectoryMap(object):
+    ''' Maps directory basenames to full paths. '''
+    def __init__(self, db_path):
+        self.db_path = db_path
+        self.map = self._load()
 
-    # Remove paths for this key that no longer exist or are ignored.
-    for idx, path in enumerate(dirmap[key]):
-        if not os.path.exists(path) or path_is_ignored(path, J_IGNORE):
-            del dirmap[key][idx]
+    def _load(self):
+        ''' Load the mapping of basenames to full paths from disk. '''
+        if os.path.exists(self.db_path):
+            with open(self.db_path, 'rb') as f:
+                return pickle.load(f)
+        else:
+            return {}
 
-    # If there are no paths left, remove the key entirely.
-    if len(dirmap[key]) == 0:
-        dirmap.pop(key)
-        return False
-    return True
+    def save(self):
+        ''' Save the directory map to the pickle. '''
+        with open(self.db_path, 'wb') as f:
+            pickle.dump(self.map, f)
 
+        # NOTE experimental JSON backend
+        with open(J_JSON_PATH, 'w') as f:
+            json.dump(self.map, f)
 
-def path_is_ignored(dir_path, ignore_path):
-    ''' Returns True if the dir should be ignored as per the ignore file, False
-        otherwise. '''
-    if not os.path.exists(ignore_path):
-        return False
-    with open(ignore_path, 'r') as f:
-        lines = f.read().strip().split('\n')
-    patterns = [line for line in lines if line.strip()[0] != '#']
-    for pattern in patterns:
-        if fnmatch.fnmatch(dir_path, pattern):
-            return True
-    return False
+    def keys(self):
+        return self.map.keys()
 
+    def get(self, basename):
+        return self.map[basename]
 
-def load(pickle_path):
-    ''' Load the directory dictionary from pickle. '''
-    if os.path.exists(pickle_path):
-        with open(pickle_path, 'rb') as f:
-            return pickle.load(f)
-    else:
-        return {}
+    def _remove_stale_paths(self, basename):
+        ''' Remove paths pointed to by key that no longer exist or that are now
+            ignored. '''
+        if basename not in self.map:
+            return
 
+        # Remove paths for this key that no longer exist or are ignored.
+        for idx, path in enumerate(self.map[basename]):
+            if not os.path.exists(path) or path_is_ignored(path, J_IGNORE):
+                del self.map[basename][idx]
 
-def save(pickle_path, dirmap):
-    ''' Save the directory map to the pickle. '''
-    with open(pickle_path, 'wb') as f:
-        pickle.dump(dirmap, f)
-
-
-def add_dir_path(dir_path, dirmap):
-    ''' Add a directory path to the map. The path should be a full absolute
-        path. '''
-    basename = os.path.basename(dir_path)
-    remove_stale_paths(dirmap, basename)
-
-    # If this directory path is being ignored, don't add it.
-    if path_is_ignored(dir_path, J_IGNORE):
-        return
-
-    if basename in dirmap:
-        # Add the path to the front of the list in the map, removing it if it
-        # already exists.
-        if dir_path in dirmap[basename]:
-            dirmap[basename].remove(dir_path)
-        dirmap[basename].insert(0, dir_path)
-    else:
-        dirmap[basename] = [dir_path]
-
-
-def select_path(basename, dirmap):
-    ''' Select the desired path when multiple exist. It is necessary to
-        separate this from the get function so that it can be called separately
-        from the shell wrapper script.
-
-        Return False if there were multiple items from which to select but the
-        user quit, True otherwise. '''
-    remove_stale_paths(dirmap, basename)
-    if basename in dirmap and len(dirmap[basename]) > 1:
-        lister = Lister(dirmap[basename], SELECT_INSTR)
-        idx = curses.wrapper(lister.select)
-        if idx > 0:
-            # Selected path is inserted at the front of list.
-            dir_path = dirmap[basename][idx]
-            del dirmap[basename][idx]
-            dirmap[basename].insert(0, dir_path)
-            return True
-        # Only return False if the user quit the selection process.
-        if idx < 0:
+        # If there are no paths left, remove the key entirely.
+        if len(self.map[basename]) == 0:
+            self.map.pop(basename)
             return False
-    return True
+        return True
 
+    def add_entry(self, entry):
+        ''' Add a directory path to the map. The path should be a full absolute
+            path. '''
+        basename = os.path.basename(entry)
+        self._remove_stale_paths(basename)
 
-def purge_paths(basename, dirmap):
-    ''' Open a curses CLI to allow the user to purge paths from the directory
-        list. '''
-    remove_stale_paths(dirmap, basename)
-    if basename in dirmap:
-        lister = Lister(dirmap[basename], PURGE_INSTR)
-        items = curses.wrapper(lister.purge)
-        dirmap[basename] = items
+        # If this directory path is being ignored, don't add it.
+        if path_is_ignored(entry, J_IGNORE):
+            return
 
+        if basename in self.map:
+            # Add the path to the front of the list in the map, removing it if
+            # it already exists.
+            if entry in self.map[basename]:
+                self.map[basename].remove(entry)
+            self.map[basename].insert(0, entry)
+        else:
+            self.map[basename] = [entry]
 
-def get_dir_path(basename, dirmap):
-    ''' Get the directory path for the basename. '''
-    if basename in dirmap:
-        return dirmap[basename][0]
-    else:
-        return '.'
+    def purge(self, basename):
+        ''' Open a curses CLI to allow the user to purge paths from the directory
+            list. '''
+        self._remove_stale_paths(basename)
+        if basename in self.map:
+            lister = Lister(self.map[basename], PURGE_INSTR)
+            items = curses.wrapper(lister.purge)
+            self.map[basename] = items
+
+    def select(self, basename):
+        ''' Select the desired path when multiple exist. It is necessary to
+            separate this from the get function so that it can be called
+            separately from the shell wrapper script.
+
+            Return False if there were multiple items from which to select but
+            the user quit, True otherwise. '''
+        self._remove_stale_paths(basename)
+        if basename in self.map and len(self.map[basename]) > 1:
+            lister = Lister(self.map[basename], SELECT_INSTR)
+            idx = curses.wrapper(lister.select)
+            if idx > 0:
+                # Selected path is inserted at the front of list.
+                dir_path = self.map[basename][idx]
+                del self.map[basename][idx]
+                self.map[basename].insert(0, dir_path)
+                return True
+            # Only return False if the user quit the selection process.
+            if idx < 0:
+                return False
+        return True
+
+    def get_path(self, basename):
+        ''' Get the directory path for the basename. '''
+        if basename in self.map:
+            return self.map[basename][0]
+        else:
+            return '.'
 
 
 def main():
     if len(sys.argv) == 1:
-        print('no thanks')
-        print('')
         return 1
 
     args = sys.argv[1:]
 
+    dirmap = DirectoryMap(J_PICKLE)
+
     # Add directory.
     if args[0] == '--add-cwd':
-        dirmap = load(J_PICKLE)
         # It is possible to end up in a directory that doesn't actually exist
         # when another process removes it or a parent. One example is checking
         # out a git branch with a different directory structure.
@@ -209,13 +220,12 @@ def main():
             cwd = os.getcwd()
         except FileNotFoundError:
             return 1
-        add_dir_path(cwd, dirmap)
-        save(J_PICKLE, dirmap)
+        dirmap.add_entry(cwd)
+        dirmap.save()
         return 0
 
     # Print all directories.
     elif args[0] == '--list-all-keys':
-        dirmap = load(J_PICKLE)
         print('\n'.join(dirmap.keys()))
         return 0
 
@@ -226,31 +236,27 @@ def main():
 
     # Select a directory.
     if args[0] == '--select':
-        dirmap = load(J_PICKLE)
         basename = args[1]
-        did_selection = select_path(basename, dirmap)
-        save(J_PICKLE, dirmap)
+        did_selection = dirmap.select(basename)
+        dirmap.save()
         return 0 if did_selection else 1
 
     elif args[0] == '--purge':
-        dirmap = load(J_PICKLE)
         basename = args[1]
-        purge_paths(basename, dirmap)
-        save(J_PICKLE, dirmap)
+        dirmap.purge(basename)
+        dirmap.save()
 
     elif args[0] == '--list':
-        dirmap = load(J_PICKLE)
         basename = args[1]
-        if basename in dirmap:
-            print('\n'.join(dirmap[basename]))
+        if basename in dirmap.keys():
+            print('\n'.join(dirmap.get(basename)))
 
     # Default is print path of directory passed as first argument.
     elif args[0] == '--print':
-        dirmap = load(J_PICKLE)
         basename = args[1]
-        dirname = get_dir_path(basename, dirmap)
+        dirname = dirmap.get_path(basename)
         print(dirname)
-        save(J_PICKLE, dirmap)
+        dirmap.save()
 
     else:
         print('Unrecognized command.')
