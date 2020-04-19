@@ -103,11 +103,19 @@ class Lister(object):
 
 # TODO idea here was to keep more metadata about each entry to enable things
 # like expiration
+# This would only be used an message interface to the JDatabase, below
 class DirectoryEntry(object):
     def __init__(self, path, stamp=None):
         self.path = path
         self.basename = os.path.basename(path)
         self.stamp = stamp if stamp else datetime.datetime.now()
+
+    def exists(self):
+        return os.path.exists(self.path)
+
+    def is_ignored(self, ignore_fp=J_IGNORE):
+        # TODO
+        return False
 
     def as_dict(self):
         return {
@@ -125,7 +133,7 @@ class DirectoryEntry(object):
 # TODO kind of want another object that abstracts away the actual map shit
 # e.g. deleting and moving to the front of the list
 # Not sure if further abstraction is possible, however
-class UsefulMap(object):
+class JDatabase(object):
     def __init__(self, m):
         self.map = m
 
@@ -156,14 +164,17 @@ class UsefulMap(object):
         ''' Return all entries associated with the basename. '''
         return [DirectoryEntry.from_dict(item) for item in self.map[basename]]
 
-    # def __getitem__(self, basename):
-    #     return DirectoryEntry.from_dict(self.map[basename][0])
-
     def __contains__(self, basename):
         return basename in self.map
 
+    def load(self, db_path):
+        pass
 
-class DirectoryMap(object):
+    def save(self, db_path):
+        pass
+
+
+class JInterface(object):
     ''' Maps directory basenames to full paths. '''
     def __init__(self, db_path):
         self.db_path = db_path
@@ -193,15 +204,20 @@ class DirectoryMap(object):
         # which works well for entries, and basenames, which does not
 
         # Remove paths for this key that no longer exist or are ignored.
-        for idx, path in enumerate(self.map[basename]):
-            if not os.path.exists(path) or path_is_ignored(path, J_IGNORE):
-                del self.map[basename][idx]
+        # for idx, path in enumerate(self.map[basename]):
+        #     if not os.path.exists(path) or path_is_ignored(path, J_IGNORE):
+        #         del self.map[basename][idx]
 
         # If there are no paths left, remove the key entirely.
-        if len(self.map[basename]) == 0:
-            self.map.pop(basename)
-            return False
-        return True
+        # if len(self.map[basename]) == 0:
+        #     self.map.pop(basename)
+        #     return False
+        # return True
+
+        # TODO this is prettier but less efficient than the above code
+        for entry in self.map.all(basename):
+            if not entry.exists() or entry.is_ignored():
+                self.map.remove(entry)
 
     def add_entry(self, path):
         ''' Add a directory path to the map. The path should be a full absolute
@@ -255,10 +271,8 @@ class DirectoryMap(object):
     def get_path(self, basename):
         ''' Get the directory path for the basename. '''
         if basename in self.map:
-            # TODO three [.] is too many
-            return self.map[basename].path
-        else:
-            return '.'
+            return self.map.first(basename).path
+        return '.'
 
 
 def main():

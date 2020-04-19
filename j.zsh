@@ -33,6 +33,10 @@ j() {
     *)
       # First allow the user to select the desired path, then cd to it.
       $J_EXE --select $1 && cd $($J_EXE --print $1)
+      # local path=$($J_EXE --select $1)
+      # if $?; then
+      #   cd $path
+      # fi
     ;;
   esac
 }
