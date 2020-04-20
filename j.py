@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
+import time
 import curses
 import fnmatch
-import json
 import os
 import pickle
 import sys
@@ -119,8 +119,8 @@ class DirectoryMap(object):
             pickle.dump(self.map, f)
 
         # NOTE experimental JSON backend
-        with open(J_JSON_PATH, 'w') as f:
-            json.dump(self.map, f)
+        # with open(J_JSON_PATH, 'w') as f:
+        #     json.dump(self.map, f)
 
     def keys(self):
         return self.map.keys()
@@ -209,6 +209,7 @@ def main():
 
     args = sys.argv[1:]
 
+    t0 = time.time()
     dirmap = DirectoryMap(J_PICKLE)
 
     # Add directory.
@@ -220,8 +221,12 @@ def main():
             cwd = os.getcwd()
         except FileNotFoundError:
             return 1
+        t1 = time.time()
         dirmap.add_entry(cwd)
+        t2 = time.time()
         dirmap.save()
+        t3 = time.time()
+        # print('j load = {}\nj add = {}\nj save = {}'.format(t1 - t0, t2 - t1, t3 - t2))
         return 0
 
     # Print all directories.

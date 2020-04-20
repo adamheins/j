@@ -1,13 +1,11 @@
 #!/usr/bin/env python3
+import time
 import curses
 import fnmatch
 import os
 import sys
-import time
-import msgpack
-import shutil
-
-import IPython
+from msgpack import packb, unpackb
+from shutil import copyfile
 
 J_DIR = os.path.expanduser('~/.j')
 J_IGNORE = os.path.join(J_DIR, 'ignore')
@@ -112,16 +110,14 @@ class JDatabase(object):
             return {}
         with open(self.path, 'rb') as f:
             data = f.read()
-        unpacked = msgpack.unpackb(data, raw=False)
-        # IPython.embed()
-        return unpacked
+        return unpackb(data, raw=False)
 
     def save(self):
-        packed = msgpack.packb(self.map)
+        packed = packb(self.map)
         backup_path = self.path + '.back'
         with open(backup_path, 'wb') as f:
             f.write(packed)
-        shutil.copyfile(backup_path, self.path)
+        copyfile(backup_path, self.path)
         os.remove(backup_path)
 
     def add(self, key, path):
