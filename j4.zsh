@@ -1,5 +1,6 @@
 
 J4_DATA_DIR=~/.j/data
+J4_IGNORE_FILE=~/.j/ignore
 
 j4() {
   if [ -z $1 ]; then
@@ -19,7 +20,7 @@ j4() {
       echo 'options:'
       echo '  -h, --help   show this help message and exit'
       echo '  -l, --list   list all entries for dir'
-      echo '  -p, --purge  interactively delete entries for dir'
+      echo '  -p, --prune  interactively delete entries for dir'
     ;;
     *)
       # If no options are passed, the most recent path with the given basename
@@ -42,7 +43,7 @@ _j4_clean_one() {
   [ -f "$j_path" ] || return
 
   IFS=$'\n'
-  local lines=($(cat "$j_path"))
+  local lines=($(<"$j_path"))
   local tmp_file=$(mktemp)
 
   # Gather lines which point to still-existing directories.
@@ -58,7 +59,7 @@ _j4_clean_one() {
 # List paths associated with a single key.
 _j4_list_one() {
   if [ -f "$J4_DATA_DIR/$1" ]; then
-    cat "$J4_DATA_DIR/$1" | cut -d' ' -f2-
+    cut -d' ' -f2- < "$J4_DATA_DIR/$1"
   fi
 }
 
@@ -67,13 +68,25 @@ _j4_list_all() {
   ls $J4_DATA_DIR
 }
 
+# Exit status 0 if path should be ignored, otherwise non-zero status.
+_j4_is_ignored() {
+  local patterns=($(<$J4_IGNORE_FILE))
+  # local patterns=("*/.password-store/*")
+  for pattern in $patterns; do
+    [[ "$1" == $~pattern ]] && return 0
+  done
+  return 1
+}
+
 # Add current working directory to the list of keys.
 _j4_add_cwd() {
   # exit if current working directory doesn't exist
   [ -d $PWD ] || return
 
-  local j_name=$(basename $PWD)
-  local j_path="$J4_DATA_DIR/$j_name"
+  local j_path="$J4_DATA_DIR/$(basename $PWD)"
+
+  # if the path is ignored, exit
+  _j4_is_ignored "$j_path" && return
 
   # remove existing entry of this path
   if [ -f $j_path ]; then
