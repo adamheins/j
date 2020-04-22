@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import curses
+import os
 import sys
 
 
@@ -53,23 +54,25 @@ class Lister(object):
             if self._navigate(key_code):
                 continue
             elif key_code in QUIT_KEYS:
-                return None
+                return -1
             elif key_code in SELECT_KEYS:
-                return self.items[self.index]
+                return self.index
 
     def prune(self, screen):
         ''' Delete items from the list. '''
         curses.curs_set(False)
+        removed = []
         while True:
             key_code = self._refresh(screen)
             if self._navigate(key_code):
                 continue
             elif key_code in QUIT_KEYS:
-                return self.items
+                return removed
             elif key_code in DELETE_KEYS:
                 del self.items[self.index]
+                removed.append(self.index)
                 if len(self.items) == 0:
-                    return self.items
+                    return removed
                 elif self.index > len(self.items) - 1:
                     self.index -= 1
                 screen.erase()
@@ -95,12 +98,23 @@ def main():
     lister = Lister(files, instructions)
 
     if prune:
-        result = curses.wrapper(lister.prune)
+        removed = curses.wrapper(lister.prune)
+        for idx in removed:
+            del lines[idx]
+        if len(lines) == 0:
+            os.remove(path)
+        else:
+            with open(path, 'w') as f:
+                f.write('\n'.join(lines))
     else:
-        result = curses.wrapper(lister.select)
-
-    if result:
-        print(result)
+        idx = curses.wrapper(lister.select)
+        if idx == -1:
+            return
+        line = lines[idx]
+        del lines[idx]
+        lines.append(line)
+        with open(path, 'w') as f:
+            f.write('\n'.join(lines))
 
 
 if __name__ == '__main__':

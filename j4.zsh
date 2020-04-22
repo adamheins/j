@@ -1,6 +1,7 @@
 
 J4_DATA_DIR=~/.j/data
 J4_IGNORE_FILE=~/.j/ignore
+J4_SELECTOR=~/dev/proj/j/jselector.py
 
 j4() {
   if [ -z $1 ]; then
@@ -9,25 +10,53 @@ j4() {
   fi
   case "$1" in
     -l|--list)
+      if [ -z "$2" ]; then
+        echo A directory name is required.
+        return 1
+      fi
       _j4_list_one "$2"
     ;;
-    -p|--purge)
-      echo TODO: requires selector
+    -p|--prune)
+      if [ -z "$2" ]; then
+        echo A directory name is required.
+        return 1
+      fi
+      if [ -f "$J4_DATA_DIR/$2" ]; then
+        "$J4_SELECTOR" --prune "$J4_DATA_DIR/$2"
+
+        # if the file is now empty, remove the key
+        [ -s "$J4_DATA_DIR/$2" ] || rm "$J4_DATA_DIR/$2"
+      else
+        echo "No such key: $2"
+      fi
+    ;;
+    -c|--clean)
+      echo not implemented
     ;;
     -h|--help)
       echo 'j [options] dir'
       echo ''
       echo 'options:'
+      echo '  -c, --clean  remove all directories that no longer exist'
       echo '  -h, --help   show this help message and exit'
       echo '  -l, --list   list all entries for dir'
       echo '  -p, --prune  interactively delete entries for dir'
     ;;
     *)
-      # If no options are passed, the most recent path with the given basename
-      # is cd'd to.
-      # TODO need to add selector
+      if ! [ -f "$J4_DATA_DIR/$1" ]; then
+        return 1
+      fi
+
       _j4_clean_one "$1"
-      local d=$(_j4_list_one "$1" | tail -n 1)
+
+      # 1. do selection
+      local d=($(_j4_list_one "$1"))
+      if [ -n "$d[2]" ]; then
+        "$J4_SELECTOR" "$J4_DATA_DIR/$1"
+      fi
+
+      # 2. do regular change
+      d=$(_j4_list_one "$1" | tail -n 1)
       if [ -n "$d" ]; then
         cd "$d"
       fi
@@ -53,7 +82,15 @@ _j4_clean_one() {
       echo "$line" >> "$tmp_file"
     fi
   done
-  mv "$tmp_file" "$j_path"
+
+  # If the file is non-empty, replace the current file with the temp file.
+  # Otherwise, remove both.
+  if [ -s "$tmp_file" ]; then
+    mv "$tmp_file" "$j_path"
+  else
+    rm "$j_path"
+    rm "$tmp_file"
+  fi
 }
 
 # List paths associated with a single key.
@@ -81,7 +118,7 @@ _j4_is_ignored() {
 # Add current working directory to the list of keys.
 _j4_add_cwd() {
   # exit if current working directory doesn't exist
-  [ -d $PWD ] || return
+  [ -d "$PWD" ] || return
 
   local j_path="$J4_DATA_DIR/$(basename $PWD)"
 
