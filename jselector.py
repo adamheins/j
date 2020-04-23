@@ -78,43 +78,61 @@ class Lister(object):
                 screen.erase()
 
 
+def read_lines(path):
+    with open(path) as f:
+        return f.read().strip().split('\n')
+
+
+def write_lines(path, lines):
+    with open(path, 'w') as f:
+        f.write('\n'.join(lines))
+
+
+def do_prune(path):
+    lines = read_lines(path)
+    files = [line.split()[1] for line in lines]
+    lister = Lister(files, PRUNE_INSTR)
+
+    removed = curses.wrapper(lister.prune)
+
+    # delete lines pruned by user
+    for idx in removed:
+        del lines[idx]
+
+    # write out new subset of lines
+    if len(lines) == 0:
+        os.remove(path)
+    else:
+        write_lines(path, lines)
+
+
+def do_select(path):
+    lines = read_lines(path)
+    files = [line.split()[1] for line in lines]
+    lister = Lister(files, SELECT_INSTR)
+
+    idx = curses.wrapper(lister.select)
+    if idx == -1:
+        return
+
+    # move selected line to the end of the file so it can be identified later
+    line = lines[idx]
+    del lines[idx]
+    lines.append(line)
+
+    write_lines(path, lines)
+
+
 def main():
     if len(sys.argv) == 1:
         return 1
 
     if sys.argv[1] == '--prune':
-        prune = True
-        instructions = PRUNE_INSTR
         path = sys.argv[2]
+        do_prune(path)
     else:
-        prune = False
-        instructions = SELECT_INSTR
         path = sys.argv[1]
-
-    with open(path) as f:
-        lines = f.read().strip().split('\n')
-
-    files = [line.split()[1] for line in lines]
-    lister = Lister(files, instructions)
-
-    if prune:
-        removed = curses.wrapper(lister.prune)
-        for idx in removed:
-            del lines[idx]
-        if len(lines) == 0:
-            os.remove(path)
-        else:
-            with open(path, 'w') as f:
-                f.write('\n'.join(lines))
-    else:
-        idx = curses.wrapper(lister.select)
-        if idx == -1:
-            return
-        line = lines[idx]
-        del lines[idx]
-        lines.append(line)
-        with open(path, 'w') as f:
-            f.write('\n'.join(lines))
+        do_select(path)
 
 
 if __name__ == '__main__':
