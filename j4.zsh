@@ -1,5 +1,6 @@
 # j - jump to files
 
+# TODO it doesn't make sense to declare these here
 [[ -z "$J4_DATA_DIR" ]] && J4_DATA_DIR=~/.j/data
 [[ -z "$J4_IGNORE_FILE" ]] && J4_IGNORE_FILE=~/.j/ignore
 
@@ -46,7 +47,14 @@ j() {
       fi
     ;;
     -c|--clean)
-      echo not implemented
+      local keys key
+      IFS=$'\n'
+      keys=($(_j4_list_all))
+      echo $keys
+
+      for key in $keys; do
+        j4_clean_one "$key" "$2"
+      done
     ;;
     -h|--help)
       echo 'j [options] dir'
@@ -66,7 +74,7 @@ j() {
 
       # 1. do selection
       local d=($(_j4_list_one "$1"))
-      if [ -n "$d[2]" ]; then
+      if [[ -n "$d[2]" && -n "$J4_SELECTOR" ]]; then
         "$J4_SELECTOR" "$J4_DATA_DIR/$1"
       fi
 
@@ -90,9 +98,22 @@ _j4_clean_one() {
   local lines=($(<"$j_path"))
   local tmp_file=$(mktemp)
 
+  local now min_stamp
+  min_stamp=0
+  if [ -n "$2" ]; then
+    now=$(date +%s)
+    min_stamp=$(( $now - $2*86400 ))
+  fi
+
   # Gather lines which point to still-existing directories.
   for line in $lines; do
-    local d=$(echo "$line" | cut -d' ' -f2-)
+    local stamp=${line%% *}
+    if [ "$stamp" -le "$min_stamp" ]; then
+      continue
+    fi
+
+    # directory is all parts of the line after the timestamp
+    local d=${line#* }
     if [ -d "$d" ]; then
       echo "$line" >> "$tmp_file"
     fi
@@ -119,14 +140,13 @@ _j4_list_one() {
 
 # List all keys.
 _j4_list_all() {
-  ls $J4_DATA_DIR
+  ls "$J4_DATA_DIR"
 }
 
 
 # Exit status 0 if path should be ignored, otherwise non-zero status.
 _j4_is_ignored() {
   local patterns=($(<$J4_IGNORE_FILE))
-  # local patterns=("*/.password-store/*")
   for pattern in $patterns; do
     [[ "$1" == $~pattern ]] && return 0
   done
@@ -134,29 +154,45 @@ _j4_is_ignored() {
 }
 
 
-# Add current working directory to the list of keys.
-_j4_add_cwd() {
+# Add a directory to the j database.
+# Globals:
+#   J4_IGNORE_FILE
+#   J4_DATA_DIR
+# Arguments:
+#   $1 Path to directory
+# Outputs:
+#   Writes time and path to a file in the j data directory.
+j::add_directory() {
   # exit if current working directory doesn't exist
-  [ -d "$PWD" ] || return
+  [ -d "$1" ] || return
 
   # if the path is ignored, exit
-  _j4_is_ignored "$PWD" && return
+  if [ -f "$J4_IGNORE_FILE" ]; then
+    _j4_is_ignored "$1" && return
+  fi
 
-  local j_path="$J4_DATA_DIR/$(basename $PWD)"
+  local j_path tmp_file
+  j_path="$J4_DATA_DIR/$(basename $1)"
 
   # remove existing entry of this path
   if [ -f $j_path ]; then
-    local tmp_file=$(mktemp)
-    grep -v "$PWD$" "$j_path" > "$tmp_file"
+    tmp_file=$(mktemp)
+    grep -v "$1$" "$j_path" > "$tmp_file"
     mv "$tmp_file" "$j_path"
   fi
 
   # append time and path to the file
-  echo "$(date +%s) ${PWD}" >> "$j_path"
+  echo "$(date +%s) ${1}" >> "$j_path"
 }
 
 
-# Add to list of precmd functions.
-[[ -n "${precmd_functions[(r)_j4_add_cwd]}" ]] || {
-  precmd_functions[$(($#precmd_functions+1))]=_j4_add_cwd
+# Add current working directory to the j database.
+j::add_cwd() {
+  j::add_directory "$PWD"
+}
+
+
+# Add to list of functions executed whenever working directory is changed.
+[[ -n "${chpwd_functions[(r)j::add_cwd]}" ]] || {
+  chpwd_functions[$(($#chpwd_functions+1))]=j::add_cwd
 }
