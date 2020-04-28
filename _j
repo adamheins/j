@@ -4,5 +4,5 @@
 # zstyle ':completion:*:*:j:*:*' verbose yes
 
 IFS=$'\n'
-keys=($(_j4_list_all))
+keys=($(j::list_all))
 _values 'keys' $keys

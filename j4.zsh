@@ -1,30 +1,30 @@
 # j - jump to files
 
-# TODO it doesn't make sense to declare these here
-[[ -z "$J4_DATA_DIR" ]] && J4_DATA_DIR=~/.j/data
-[[ -z "$J4_IGNORE_FILE" ]] && J4_IGNORE_FILE=~/.j/ignore
+[[ -z "$J_DATA_DIR" ]] && J_DATA_DIR=~/.j/data
+[[ -z "$J_IGNORE_FILE" ]] && J_IGNORE_FILE=~/.j/ignore
 
 # if the selector isn't set, check if it is on the path
-if [[ -z "$J4_SELECTOR" ]]; then
+if [[ -z "$J_SELECTOR" ]]; then
   if command -v jselector > /dev/null 2>&1; then
-    J4_SELECTOR=jselector
+    J_SELECTOR=jselector
   fi
 fi
 
 
 # Main j function.
 j() {
-  if [ -z $1 ]; then
+  if [ -z "$1" ]; then
     cd
     return
   fi
+
   case "$1" in
     -l|--list)
       if [ -z "$2" ]; then
         echo A directory name is required.
         return 1
       fi
-      _j4_list_one "$2"
+      j::list_one "$2"
     ;;
     -p|--prune)
       if [ -z "$2" ]; then
@@ -33,15 +33,15 @@ j() {
       fi
 
       # Check if selector is found.
-      if [ -z "$J4_SELECTOR" ]; then
+      if [ -z "$J_SELECTOR" ]; then
         echo "Selector not found."
       fi
 
-      if [ -f "$J4_DATA_DIR/$2" ]; then
-        "$J4_SELECTOR" --prune "$J4_DATA_DIR/$2"
+      if [ -f "$J_DATA_DIR/$2" ]; then
+        "$J_SELECTOR" --prune "$J_DATA_DIR/$2"
 
         # if the file is now empty, remove the key
-        [ -s "$J4_DATA_DIR/$2" ] || rm "$J4_DATA_DIR/$2"
+        [ -s "$J_DATA_DIR/$2" ] || rm "$J_DATA_DIR/$2"
       else
         echo "No such key: $2"
       fi
@@ -49,11 +49,10 @@ j() {
     -c|--clean)
       local keys key
       IFS=$'\n'
-      keys=($(_j4_list_all))
-      echo $keys
+      keys=($(j::list_all))
 
       for key in $keys; do
-        j4_clean_one "$key" "$2"
+        j::clean_one "$key" "$2"
       done
     ;;
     -h|--help)
@@ -66,20 +65,20 @@ j() {
       echo '  -p, --prune  interactively delete entries for dir'
     ;;
     *)
-      if ! [ -f "$J4_DATA_DIR/$1" ]; then
+      if ! [ -f "$J_DATA_DIR/$1" ]; then
         return 1
       fi
 
-      _j4_clean_one "$1"
+      j::clean_one "$1"
 
       # 1. do selection
-      local d=($(_j4_list_one "$1"))
-      if [[ -n "$d[2]" && -n "$J4_SELECTOR" ]]; then
-        "$J4_SELECTOR" "$J4_DATA_DIR/$1"
+      local d=($(j::list_one "$1"))
+      if [[ -n "$d[2]" && -n "$J_SELECTOR" ]]; then
+        "$J_SELECTOR" "$J_DATA_DIR/$1"
       fi
 
       # 2. do regular change
-      d=$(_j4_list_one "$1" | tail -n 1)
+      d=$(j::list_one "$1" | tail -n 1)
       if [ -n "$d" ]; then
         cd "$d"
       fi
@@ -89,9 +88,9 @@ j() {
 
 
 # Remove directories that no longer exist from a single key.
-_j4_clean_one() {
+j::clean_one() {
   # if the key does not exist, do nothing
-  local j_path="$J4_DATA_DIR/$1"
+  local j_path="$J_DATA_DIR/$1"
   [ -f "$j_path" ] || return
 
   IFS=$'\n'
@@ -131,22 +130,22 @@ _j4_clean_one() {
 
 
 # List paths associated with a single key.
-_j4_list_one() {
-  if [ -f "$J4_DATA_DIR/$1" ]; then
-    cut -d' ' -f2- < "$J4_DATA_DIR/$1"
+j::list_one() {
+  if [ -f "$J_DATA_DIR/$1" ]; then
+    cut -d' ' -f2- < "$J_DATA_DIR/$1"
   fi
 }
 
 
 # List all keys.
-_j4_list_all() {
-  ls "$J4_DATA_DIR"
+j::list_all() {
+  ls "$J_DATA_DIR"
 }
 
 
 # Exit status 0 if path should be ignored, otherwise non-zero status.
-_j4_is_ignored() {
-  local patterns=($(<$J4_IGNORE_FILE))
+j::is_ignored() {
+  local patterns=($(<$J_IGNORE_FILE))
   for pattern in $patterns; do
     [[ "$1" == $~pattern ]] && return 0
   done
@@ -156,8 +155,8 @@ _j4_is_ignored() {
 
 # Add a directory to the j database.
 # Globals:
-#   J4_IGNORE_FILE
-#   J4_DATA_DIR
+#   J_IGNORE_FILE
+#   J_DATA_DIR
 # Arguments:
 #   $1 Path to directory
 # Outputs:
@@ -167,12 +166,12 @@ j::add_directory() {
   [ -d "$1" ] || return
 
   # if the path is ignored, exit
-  if [ -f "$J4_IGNORE_FILE" ]; then
-    _j4_is_ignored "$1" && return
+  if [ -f "$J_IGNORE_FILE" ]; then
+    j::is_ignored "$1" && return
   fi
 
   local j_path tmp_file
-  j_path="$J4_DATA_DIR/$(basename $1)"
+  j_path="$J_DATA_DIR/$(basename $1)"
 
   # remove existing entry of this path
   if [ -f $j_path ]; then

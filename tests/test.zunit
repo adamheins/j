@@ -1,0 +1,14 @@
+#!/usr/bin/env zunit
+
+@setup {
+  load ../j4.zsh
+}
+
+@teardown {
+
+}
+
+@test 'Test one' {
+  echo foo
+  assert "$J_DATA_DIR" same_as "/home/adam/.j/data"
+}
