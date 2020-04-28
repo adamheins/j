@@ -90,14 +90,16 @@ def write_lines(path, lines):
 
 def do_prune(path):
     lines = read_lines(path)
-    files = [line.split()[1] for line in lines]
+    lines_reversed = lines[::-1]
+    files = [line.split()[1] for line in lines_reversed]
     lister = Lister(files, PRUNE_INSTR)
 
     removed = curses.wrapper(lister.prune)
 
     # delete lines pruned by user
+    n = len(lines)
     for idx in removed:
-        del lines[idx]
+        del lines[n - 1 - idx]
 
     # write out new subset of lines
     if len(lines) == 0:
@@ -108,7 +110,8 @@ def do_prune(path):
 
 def do_select(path):
     lines = read_lines(path)
-    files = [line.split()[1] for line in lines]
+    lines_reversed = lines[::-1]
+    files = [line.split()[1] for line in lines_reversed]
     lister = Lister(files, SELECT_INSTR)
 
     idx = curses.wrapper(lister.select)
@@ -116,8 +119,9 @@ def do_select(path):
         return
 
     # move selected line to the end of the file so it can be identified later
-    line = lines[idx]
-    del lines[idx]
+    n = len(lines)
+    line = lines[n - 1 - idx]
+    del lines[n - 1 - idx]
     lines.append(line)
 
     write_lines(path, lines)

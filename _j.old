@@ -1,8 +1,7 @@
-#compdef j4
+#compdef j
 
 # We don't want to show the descriptions.
 # zstyle ':completion:*:*:j:*:*' verbose yes
 
-IFS=$'\n'
-keys=($(_j4_list_all))
+keys=($(_j_print))
 _values 'keys' $keys

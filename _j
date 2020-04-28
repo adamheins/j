@@ -3,5 +3,6 @@
 # We don't want to show the descriptions.
 # zstyle ':completion:*:*:j:*:*' verbose yes
 
-keys=($(_j_print))
+IFS=$'\n'
+keys=($(_j4_list_all))
 _values 'keys' $keys

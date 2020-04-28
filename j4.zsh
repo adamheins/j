@@ -1,9 +1,18 @@
+# j - jump to files
 
-J4_DATA_DIR=~/.j/data
-J4_IGNORE_FILE=~/.j/ignore
-J4_SELECTOR=~/dev/proj/j/jselector.py
+[[ -z "$J4_DATA_DIR" ]] && J4_DATA_DIR=~/.j/data
+[[ -z "$J4_IGNORE_FILE" ]] && J4_IGNORE_FILE=~/.j/ignore
 
-j4() {
+# if the selector isn't set, check if it is on the path
+if [[ -z "$J4_SELECTOR" ]]; then
+  if command -v jselector > /dev/null 2>&1; then
+    J4_SELECTOR=jselector
+  fi
+fi
+
+
+# Main j function.
+j() {
   if [ -z $1 ]; then
     cd
     return
@@ -21,6 +30,12 @@ j4() {
         echo A directory name is required.
         return 1
       fi
+
+      # Check if selector is found.
+      if [ -z "$J4_SELECTOR" ]; then
+        echo "Selector not found."
+      fi
+
       if [ -f "$J4_DATA_DIR/$2" ]; then
         "$J4_SELECTOR" --prune "$J4_DATA_DIR/$2"
 
@@ -62,8 +77,8 @@ j4() {
       fi
     ;;
   esac
-
 }
+
 
 # Remove directories that no longer exist from a single key.
 _j4_clean_one() {
@@ -93,6 +108,7 @@ _j4_clean_one() {
   fi
 }
 
+
 # List paths associated with a single key.
 _j4_list_one() {
   if [ -f "$J4_DATA_DIR/$1" ]; then
@@ -100,10 +116,12 @@ _j4_list_one() {
   fi
 }
 
+
 # List all keys.
 _j4_list_all() {
   ls $J4_DATA_DIR
 }
+
 
 # Exit status 0 if path should be ignored, otherwise non-zero status.
 _j4_is_ignored() {
@@ -115,15 +133,16 @@ _j4_is_ignored() {
   return 1
 }
 
+
 # Add current working directory to the list of keys.
 _j4_add_cwd() {
   # exit if current working directory doesn't exist
   [ -d "$PWD" ] || return
 
-  local j_path="$J4_DATA_DIR/$(basename $PWD)"
-
   # if the path is ignored, exit
-  _j4_is_ignored "$j_path" && return
+  _j4_is_ignored "$PWD" && return
+
+  local j_path="$J4_DATA_DIR/$(basename $PWD)"
 
   # remove existing entry of this path
   if [ -f $j_path ]; then
