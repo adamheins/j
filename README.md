@@ -26,6 +26,11 @@ before sourcing `j.zsh`.
 
 Directories can be ignored by adding glob patterns to `$J_DIR/ignore`.
 
+## Tests
+
+Tests are run with [zunit](https://zunit.xyz). Run `zunit` in the root
+directory to run the tests.
+
 ## License
 
 MIT license. See the LICENSE file.
