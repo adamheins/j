@@ -21,7 +21,8 @@ to your `.zshrc`.
 ## Configuration
 
 Data and other files are stored in the directory pointed to by `$J_DIR`, which
-is `~/.j` by default.
+is `~/.j` by default. A custom location can be used by exporting `$J_DIR`
+before sourcing `j.zsh`.
 
 Directories can be ignored by adding glob patterns to `$J_DIR/ignore`.
 

@@ -1,19 +1,27 @@
 #!/usr/bin/env zunit
 
 @setup {
+  test_dir=$(mktemp -d)
+  J_DIR="$test_dir/.j"
+  mkdir -p "$J_DIR/data"
+
   load ../j.zsh
-  tmp_data_dir=$(mktemp -d)
-  J_DATA_DIR="$tmp_data_dir"
-  J_IGNORE_FILE=
+
+  # we need to manually clear the J_SELECTOR since it cannot be used
+  # non-interactively.
+  J_SELECTOR=
 }
 
+
 @teardown {
-  rm -r "$tmp_data_dir"
+  rm -r "$test_dir"
 }
 
 
 @test 'Add directory' {
-  dir=$(mktemp -d)
+  dir="$test_dir/foo"
+  mkdir "$dir"
+
   run j::add_directory "$dir"
 
   key=$(basename $dir)
@@ -23,13 +31,15 @@
   run cut -d' ' -f2- "$J_DATA_DIR/$key"
 
   assert "$output" same_as "$dir"
-
-  rm -r "$dir"
 }
 
+
 @test 'Add multiple directories' {
-  dir1=$(mktemp -d)
-  dir2=$(mktemp -d)
+  dir1="$test_dir/foo"
+  dir2="$test_dir/bar"
+
+  mkdir "$dir1"
+  mkdir "$dir2"
 
   run j::add_directory "$dir1"
   run j::add_directory "$dir2"
@@ -42,13 +52,12 @@
 
   run cut -d' ' -f2- "$J_DATA_DIR/$key2"
   assert "$output" contains "$dir2"
-
-  rm -r "$dir1"
-  rm -r "$dir2"
 }
 
+
 @test 'Add repeat directory' {
-  dir=$(mktemp -d)
+  dir="$test_dir/foo"
+  mkdir "$dir"
 
   run j::add_directory "$dir"
   run j::add_directory "$dir"
@@ -58,18 +67,16 @@
   run wc -l < "$J_DATA_DIR/$key"
 
   assert $output equals 1
-
-  rm -r "$dir"
 }
 
 
 @test 'Add repeat basename' {
-  dir1=$(mktemp -d)
+  dir1="$test_dir/foo"
   key=$(basename $dir1)
+  dir2="$test_dir/bar/$key"
 
-  dir2_1="$(mktemp -d)"
-  dir2="$dir2_1/$key"
-  mkdir "$dir2"
+  mkdir "$dir1"
+  mkdir -p "$dir2"
 
   run j::add_directory "$dir1"
   run j::add_directory "$dir2"
@@ -77,7 +84,50 @@
   run wc -l < "$J_DATA_DIR/$key"
 
   assert $output equals 2
+}
 
-  rm -r "$dir1"
-  rm -r "$dir2_1"
+
+@test 'Add ignored directory' {
+  echo '*/foo' >> "$J_DIR/ignore"
+  dir="$test_dir/foo"
+  mkdir "$dir"
+
+  # check that directory is correctly identified as ignored
+  run j::is_ignored "$dir"
+  assert $state equals 0
+
+  run j::add_directory "$dir"
+
+  key=$(basename $dir)
+
+  [ -f "$J_DATA_DIR/$key" ] && fail "File exists"
+}
+
+
+@test 'Add cwd' {
+  dir="$test_dir/foo"
+  mkdir "$dir"
+
+  cd "$dir"
+  run j::add_cwd
+
+  key=$(basename $dir)
+
+  assert "$J_DATA_DIR/$key" is_file
+
+  run cut -d' ' -f2- "$J_DATA_DIR/$key"
+
+  assert "$output" same_as "$dir"
+}
+
+
+@test 'cd to dir' {
+  dir="$test_dir/foo"
+  mkdir "$dir"
+  key=$(basename $dir)
+
+  j::add_directory "$dir"
+  j "$key"
+
+  assert "$PWD" same_as "$dir"
 }

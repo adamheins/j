@@ -1,4 +1,4 @@
 #!/bin/zsh
 
-mkdir -p ~/.j
+mkdir -p ~/.j/data
 cp jselector.py ~/.j

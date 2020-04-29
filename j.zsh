@@ -92,6 +92,7 @@ j() {
       fi
     ;;
   esac
+  return 0
 }
 
 
@@ -201,11 +202,11 @@ j::is_ignored() {
 #   Writes time and path to a file in the j data directory.
 j::add_directory() {
   # exit if directory doesn't exist
-  [ -d "$1" ] || return
+  [ -d "$1" ] || return 1
 
   # if the path is ignored, exit
   if [ -f "$J_IGNORE_FILE" ]; then
-    j::is_ignored "$1" && return
+    j::is_ignored "$1" && return 0
   fi
 
   local j_path tmp_file
@@ -220,6 +221,8 @@ j::add_directory() {
 
   # append time and path to the file
   echo "$(date +%s) ${1}" >> "$j_path"
+
+  return 0
 }
 
 
@@ -229,7 +232,8 @@ j::add_cwd() {
 }
 
 
-# Add to list of functions executed whenever working directory is changed.
-[[ -n "${chpwd_functions[(r)j::add_cwd]}" ]] || {
+# Add to list of functions executed whenever working directory is changed. Only
+# done if the shell is interactive.
+if [[ $- == *i* && -z "${chpwd_functions[(r)j::add_cwd]}" ]]; then
   chpwd_functions[$(($#chpwd_functions+1))]=j::add_cwd
-}
+fi
