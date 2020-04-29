@@ -27,12 +27,12 @@ j [options] [args]
 Options:
   -c, --clean <N>
               Remove all directories that no longer exist or that
-              have been accessed more than N days ago.
+              have been accessed more than <N> days ago.
   -h, --help  Show this help message and exit.
   -l, --list <basename>
               List all entries for <basename>.
   -p, --prune <basename>
-              Interactively delete entries for basename.
+              Interactively delete entries for <basename>.
 ```
 
 ## Configuration
