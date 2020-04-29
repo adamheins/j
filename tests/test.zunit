@@ -28,7 +28,7 @@
 
   assert "$J_DATA_DIR/$key" is_file
 
-  run cut -d' ' -f2- "$J_DATA_DIR/$key"
+  run j::list_one "$key"
 
   assert "$output" same_as "$dir"
 }
@@ -44,7 +44,7 @@
 
   assert "$J_DATA_DIR/$key" is_file
 
-  run cut -d' ' -f2- "$J_DATA_DIR/$key"
+  run j::list_one "$key"
 
   assert "$output" same_as "$dir"
 }
@@ -131,7 +131,7 @@
 
   assert "$J_DATA_DIR/$key" is_file
 
-  run cut -d' ' -f2- "$J_DATA_DIR/$key"
+  run j::list_one "$key"
 
   assert "$output" same_as "$dir"
 }
@@ -158,4 +158,46 @@
   j "$key"
 
   assert "$PWD" same_as "$dir"
+}
+
+
+@test 'clean nonexistent directory' {
+  dir="$test_dir/foo"
+
+  # we need to make it first so j adds it
+  mkdir "$dir"
+
+  key=$(basename $dir)
+
+  run j::add_directory "$dir"
+
+  # check that the directory is there
+  run j::list_one "$key"
+  assert "$output" same_as "$dir"
+
+  rm -r "$dir"
+
+  # clean up - the file should be deleted since it becomes empty
+  run j --clean
+
+  [ -f "$J_DATA_DIR/$key" ] && fail "File exists"
+}
+
+
+@test 'clean old directory' {
+  dir="$test_dir/foo"
+  mkdir "$dir"
+
+  key=$(basename $dir)
+
+  run j::add_directory "$dir"
+
+  # check that the directory is there
+  run j::list_one "$key"
+  assert "$output" same_as "$dir"
+
+  # clean up all entries over 0 days old (i.e. all of them)
+  run j --clean 0
+
+  [ -f "$J_DATA_DIR/$key" ] && fail "File exists"
 }
