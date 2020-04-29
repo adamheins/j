@@ -1,18 +1,10 @@
 # j - jump to files
 
-# Path to data directory.
-[[ -z "$J_DATA_DIR" ]] && J_DATA_DIR=~/.j/data
+[[ -z "$J_DIR" ]] && J_DIR=~/.j
 
-# Path to ignore file.
-[[ -z "$J_IGNORE_FILE" ]] && J_IGNORE_FILE=~/.j/ignore
-
-# Path to the selector.
-# If the selector isn't set, check if it is on the path.
-if [[ -z "$J_SELECTOR" ]]; then
-  if command -v jselector > /dev/null 2>&1; then
-    J_SELECTOR=jselector
-  fi
-fi
+J_DATA_DIR="$J_DIR/data"
+J_IGNORE_FILE="$J_DIR/ignore"
+J_SELECTOR="$J_DIR/jselector.py"
 
 
 # Main j function, called by the user.
