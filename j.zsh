@@ -85,15 +85,16 @@ j() {
       j::clean_one "$1"
 
       # 1. do selection
-      local d=($(j::list_one "$1"))
-      if [[ -n "${d[2]}" && -n "$J_SELECTOR" ]]; then
+      local directory directories
+      directories=($(j::list_one "$1"))
+      if [[ -n "${directories[2]}" && -n "$J_SELECTOR" ]]; then
         "$J_SELECTOR" "$J_DATA_DIR/$1"
       fi
 
       # 2. do regular change
-      d=$(j::list_one "$1" | tail -n 1)
-      if [ -n "$d" ]; then
-        cd "$d"
+      directory=$(j::list_one "$1" | tail -n 1)
+      if [ -d "$directory" ]; then
+        cd "$directory"
       fi
     ;;
   esac
@@ -114,9 +115,11 @@ j::clean_one() {
   [ -f "$j_path" ] || return
 
   IFS=$'\n'
-  local lines=($(<"$j_path"))
-  local tmp_file=$(mktemp)
+  local lines tmp_file
+  lines=($(<"$j_path"))
+  tmp_file=$(mktemp)
 
+  # Calculate minimum accessed time stamp to not remove.
   local now min_stamp
   min_stamp=0
   if [ -n "$2" ]; then
@@ -179,7 +182,8 @@ j::list_all() {
 # Arguments:
 #   $1 Path to directory
 j::is_ignored() {
-  local patterns=($(<$J_IGNORE_FILE))
+  local patterns
+  patterns=($(<$J_IGNORE_FILE))
   for pattern in $patterns; do
     [[ "$1" == $~pattern ]] && return 0
   done
