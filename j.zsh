@@ -63,13 +63,18 @@ j() {
       done
     ;;
     -h|--help)
-      echo 'j [options] dir'
+      echo 'j <basename>'
+      echo 'j [options] [args]'
       echo ''
-      echo 'options:'
-      echo '  -c, --clean  remove all directories that no longer exist'
-      echo '  -h, --help   show this help message and exit'
-      echo '  -l, --list   list all entries for dir'
-      echo '  -p, --prune  interactively delete entries for dir'
+      echo 'Options:'
+      echo '  -c, --clean <N>'
+      echo '              Remove all directories that no longer exist or that'
+      echo '              have been accessed more than N days ago.'
+      echo '  -h, --help  Show this help message and exit.'
+      echo '  -l, --list <basename>'
+      echo '              List all entries for <basename>.'
+      echo '  -p, --prune <basename>'
+      echo '              Interactively delete entries for basename.'
     ;;
     *)
       if ! [ -f "$J_DATA_DIR/$1" ]; then

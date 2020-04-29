@@ -18,6 +18,23 @@ source /path/to/j.zsh
 ```
 to your `.zshrc`.
 
+## Usage
+
+```
+j <basename>
+j [options] [args]
+
+Options:
+  -c, --clean <N>
+              Remove all directories that no longer exist or that
+              have been accessed more than N days ago.
+  -h, --help  Show this help message and exit.
+  -l, --list <basename>
+              List all entries for <basename>.
+  -p, --prune <basename>
+              Interactively delete entries for basename.
+```
+
 ## Configuration
 
 Data and other files are stored in the directory pointed to by `$J_DIR`, which
