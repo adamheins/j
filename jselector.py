@@ -79,16 +79,19 @@ class Lister(object):
 
 
 def read_lines(path):
+    ''' Read lines from a file. '''
     with open(path) as f:
         return f.read().strip().split('\n')
 
 
 def write_lines(path, lines):
+    ''' Write lines to a file. '''
     with open(path, 'w') as f:
         f.write('\n'.join(lines))
 
 
 def do_prune(path):
+    ''' Prune directories from the list in the file at the given path. '''
     lines = read_lines(path)
     lines_reversed = lines[::-1]
     files = [line.split()[1] for line in lines_reversed]
@@ -109,6 +112,7 @@ def do_prune(path):
 
 
 def do_select(path):
+    ''' Select a directory from the list in the file at the given path. '''
     lines = read_lines(path)
     lines_reversed = lines[::-1]
     files = [line.split()[1] for line in lines_reversed]
