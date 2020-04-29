@@ -24,7 +24,23 @@
 
   run j::add_directory "$dir"
 
-  key=$(basename $dir)
+  key="$(basename $dir)"
+
+  assert "$J_DATA_DIR/$key" is_file
+
+  run cut -d' ' -f2- "$J_DATA_DIR/$key"
+
+  assert "$output" same_as "$dir"
+}
+
+
+@test 'Add directory with space' {
+  dir="$test_dir/foo bar"
+  mkdir "$dir"
+
+  run j::add_directory "$dir"
+
+  key="$(basename $dir)"
 
   assert "$J_DATA_DIR/$key" is_file
 
@@ -121,8 +137,20 @@
 }
 
 
-@test 'cd to dir' {
+@test 'cd to directory' {
   dir="$test_dir/foo"
+  mkdir "$dir"
+  key=$(basename $dir)
+
+  j::add_directory "$dir"
+  j "$key"
+
+  assert "$PWD" same_as "$dir"
+}
+
+
+@test 'cd to directory with space' {
+  dir="$test_dir/foo bar"
   mkdir "$dir"
   key=$(basename $dir)
 
