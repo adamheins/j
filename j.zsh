@@ -34,20 +34,21 @@ j() {
   case "$1" in
     -l|--list)
       if [ -z "$2" ]; then
-        echo A directory name is required.
+        j::echo_err "A directory basename is required."
         return 1
       fi
       j::list_one "$2"
     ;;
     -p|--prune)
       if [ -z "$2" ]; then
-        echo A directory name is required.
+        j::echo_err "A directory basename is required."
         return 1
       fi
 
       # Check if selector is found.
       if [ -z "$J_SELECTOR" ]; then
-        echo "Selector not found."
+        j::echo_err "Selector not found."
+        return 1
       fi
 
       if [ -f "$J_DATA_DIR/$2" ]; then
@@ -56,7 +57,8 @@ j() {
         # if the file is now empty, remove the key
         [ -s "$J_DATA_DIR/$2" ] || rm "$J_DATA_DIR/$2"
       else
-        echo "No such key: $2"
+        j::echo_err "No such key: $2"
+        return 1
       fi
     ;;
     -c|--clean)
@@ -98,6 +100,12 @@ j() {
       fi
     ;;
   esac
+}
+
+
+# Utility to print to stderr.
+j::echo_err() {
+  echo "$@" 1>&2
 }
 
 
