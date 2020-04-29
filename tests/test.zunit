@@ -1,14 +1,83 @@
 #!/usr/bin/env zunit
 
 @setup {
-  load ../j4.zsh
+  load ../j.zsh
+  tmp_data_dir=$(mktemp -d)
+  J_DATA_DIR="$tmp_data_dir"
+  J_IGNORE_FILE=
 }
 
 @teardown {
-
+  rm -r "$tmp_data_dir"
 }
 
-@test 'Test one' {
-  echo foo
-  assert "$J_DATA_DIR" same_as "/home/adam/.j/data"
+
+@test 'Add directory' {
+  dir=$(mktemp -d)
+  run j::add_directory "$dir"
+
+  key=$(basename $dir)
+
+  assert "$J_DATA_DIR/$key" is_file
+
+  run cut -d' ' -f2- "$J_DATA_DIR/$key"
+
+  assert "$output" same_as "$dir"
+
+  rm -r "$dir"
+}
+
+@test 'Add multiple directories' {
+  dir1=$(mktemp -d)
+  dir2=$(mktemp -d)
+
+  run j::add_directory "$dir1"
+  run j::add_directory "$dir2"
+
+  key1=$(basename $dir1)
+  key2=$(basename $dir2)
+
+  run cut -d' ' -f2- "$J_DATA_DIR/$key1"
+  assert "$output" contains "$dir1"
+
+  run cut -d' ' -f2- "$J_DATA_DIR/$key2"
+  assert "$output" contains "$dir2"
+
+  rm -r "$dir1"
+  rm -r "$dir2"
+}
+
+@test 'Add repeat directory' {
+  dir=$(mktemp -d)
+
+  run j::add_directory "$dir"
+  run j::add_directory "$dir"
+
+  key=$(basename $dir)
+
+  run wc -l < "$J_DATA_DIR/$key"
+
+  assert $output equals 1
+
+  rm -r "$dir"
+}
+
+
+@test 'Add repeat basename' {
+  dir1=$(mktemp -d)
+  key=$(basename $dir1)
+
+  dir2_1="$(mktemp -d)"
+  dir2="$dir2_1/$key"
+  mkdir "$dir2"
+
+  run j::add_directory "$dir1"
+  run j::add_directory "$dir2"
+
+  run wc -l < "$J_DATA_DIR/$key"
+
+  assert $output equals 2
+
+  rm -r "$dir1"
+  rm -r "$dir2_1"
 }
