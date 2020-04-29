@@ -1,9 +1,13 @@
 # j - jump to files
 
+# Path to data directory.
 [[ -z "$J_DATA_DIR" ]] && J_DATA_DIR=~/.j/data
+
+# Path to ignore file.
 [[ -z "$J_IGNORE_FILE" ]] && J_IGNORE_FILE=~/.j/ignore
 
-# if the selector isn't set, check if it is on the path
+# Path to the selector.
+# If the selector isn't set, check if it is on the path.
 if [[ -z "$J_SELECTOR" ]]; then
   if command -v jselector > /dev/null 2>&1; then
     J_SELECTOR=jselector
@@ -11,7 +15,16 @@ if [[ -z "$J_SELECTOR" ]]; then
 fi
 
 
-# Main j function.
+# Main j function, called by the user.
+# Globals:
+#   J_DATA_DIR
+#   J_SELECTOR
+# Arguments:
+#   $1 Flag or directory basename.
+#   $2 If $1 is a flag, then this is a directory basename. Otherwise not used.
+# Output:
+#   Write updated directory paths to the directory basename file in the
+#   J_DATA_DIR.
 j() {
   if [ -z "$1" ]; then
     cd
@@ -88,6 +101,13 @@ j() {
 
 
 # Remove directories that no longer exist from a single key.
+# Globals:
+#   J_DATA_DIR
+# Arguments:
+#   $1 Directory basename
+#   $2 Days since last access after which directory should be removed (optional).
+# Output:
+#   Write updated directory paths to the file $1 in the J_DATA_DIR.
 j::clean_one() {
   # if the key does not exist, do nothing
   local j_path="$J_DATA_DIR/$1"
@@ -130,6 +150,12 @@ j::clean_one() {
 
 
 # List paths associated with a single key.
+# Globals:
+#   J_DATA_DIR
+# Arguments:
+#   $1 Directory basename
+# Output:
+#   List all directory paths with basename $1 to stdout.
 j::list_one() {
   if [ -f "$J_DATA_DIR/$1" ]; then
     cut -d' ' -f2- < "$J_DATA_DIR/$1"
@@ -138,12 +164,20 @@ j::list_one() {
 
 
 # List all keys.
+# Globals:
+#   J_DATA_DIR
+# Output:
+#   Print all directory basenames to stdout.
 j::list_all() {
   ls "$J_DATA_DIR"
 }
 
 
 # Exit status 0 if path should be ignored, otherwise non-zero status.
+# Globals:
+#   J_IGNORE_FILE
+# Arguments:
+#   $1 Path to directory
 j::is_ignored() {
   local patterns=($(<$J_IGNORE_FILE))
   for pattern in $patterns; do
