@@ -239,6 +239,7 @@ j::add_cwd() {
 
 # Add to list of functions executed whenever working directory is changed. Only
 # done if the shell is interactive.
-if [[ $- == *i* && -z "${chpwd_functions[(r)j::add_cwd]}" ]]; then
-  chpwd_functions[$(($#chpwd_functions+1))]=j::add_cwd
+if [[ $- == *i* ]]; then
+  autoload -U add-zsh-hook
+  add-zsh-hook chpwd j::add_cwd
 fi
