@@ -209,6 +209,10 @@ j::add_directory() {
   # exit if directory doesn't exist
   [ -d "$1" ] || return 1
 
+  # don't add the root directory: we can't name it as a file and there is no
+  # ambiguity in it's name, so j'ing to it adds no value.
+  [[ "$1" == / ]] && return 0
+
   # if the path is ignored, exit
   if [ -f "$J_IGNORE_FILE" ]; then
     j::is_ignored "$1" && return 0
