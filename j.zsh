@@ -4,7 +4,10 @@
 
 J_DATA_DIR="$J_DIR/data"
 J_IGNORE_FILE="$J_DIR/ignore"
-J_SELECTOR="$J_DIR/jselector.py"
+J_RECENT_FILE="$J_DIR/recent"
+
+# J_SELECTOR="$J_DIR/jselector.py"
+J_SELECTOR=~/dev/projects/j/jselector.py
 
 
 # Main j function, called by the user.
@@ -62,19 +65,30 @@ j() {
         j::clean_one "$key" "$2"
       done
     ;;
+    -r|--recent)
+      local directory
+      "$J_SELECTOR" --recent "$J_RECENT_FILE"
+      directory=$(j::list_recent | tail -n 1)
+      if [ -d "$directory" ]; then
+        cd "$directory"
+      fi
+    ;;
     -h|--help)
       echo 'j <basename>'
       echo 'j [options] [args]'
       echo ''
       echo 'Options:'
-      echo '  -c, --clean <N>'
+      echo '  -c, --clean [N]'
       echo '              Remove all directories that no longer exist or that'
-      echo '              have been accessed more than <N> days ago.'
+      echo '              have been accessed more than N days ago.'
       echo '  -h, --help  Show this help message and exit.'
       echo '  -l, --list <basename>'
       echo '              List all entries for <basename>.'
       echo '  -p, --prune <basename>'
       echo '              Interactively delete entries for <basename>.'
+      echo '  -r, --recent'
+      echo '              Select one of the past 10 last visited directories'
+      echo '              and jump to it.'
     ;;
     *)
       if ! [ -f "$J_DATA_DIR/$1" ]; then
@@ -172,6 +186,13 @@ j::list_one() {
 }
 
 
+j::list_recent() {
+  if [ -f "$J_RECENT_FILE" ]; then
+    cut -d' ' -f2- < "$J_RECENT_FILE"
+  fi
+}
+
+
 # List all keys.
 # Globals:
 #   J_DATA_DIR
@@ -230,6 +251,12 @@ j::add_directory() {
 
   # append time and path to the file
   echo "$(date +%s) ${1}" >> "$j_path"
+
+  # also add to the list of recently visited directories
+  tmp_file=$(mktemp)
+  grep -v "$1$" "$J_RECENT_FILE" | tail -n 9 > "$tmp_file"
+  mv "$tmp_file" "$J_RECENT_FILE"
+  echo "$(date +%s) ${1}" >> "$J_RECENT_FILE"
 
   return 0
 }

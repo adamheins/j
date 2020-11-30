@@ -131,6 +131,31 @@ def do_select(path):
     write_lines(path, lines)
 
 
+def do_recent(path):
+    ''' Select a directory from the list in the file at the given path. '''
+    lines = read_lines(path)
+    lines_reversed = lines[::-1]
+    files = [line.split()[1] for line in lines_reversed]
+
+    # don't pass the first directory, which is the CWD
+    lister = Lister(files[1:], SELECT_INSTR)
+
+    idx = curses.wrapper(lister.select)
+    if idx == -1:
+        return
+
+    # add 1 to account for the first directory being removed from the Lister
+    idx += 1
+
+    # move selected line to the end of the file so it can be identified later
+    n = len(lines)
+    line = lines[n - 1 - idx]
+    del lines[n - 1 - idx]
+    lines.append(line)
+
+    write_lines(path, lines)
+
+
 def main():
     if len(sys.argv) == 1:
         return 1
@@ -138,6 +163,9 @@ def main():
     if sys.argv[1] == '--prune':
         path = sys.argv[2]
         do_prune(path)
+    elif sys.argv[1] == '--recent':
+        path = sys.argv[2]
+        do_recent(path)
     else:
         path = sys.argv[1]
         do_select(path)
