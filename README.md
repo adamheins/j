@@ -21,11 +21,11 @@ to your `.zshrc`.
 ## Usage
 
 ```
-j <basename>
+j [--] <basename>
 j [options] [args]
 
 Options:
-  -c, --clean <N>
+  -c, --clean [N]
               Remove all directories that no longer exist or that
               have been accessed more than <N> days ago.
   -h, --help  Show this help message and exit.
@@ -33,6 +33,9 @@ Options:
               List all entries for <basename>.
   -p, --prune <basename>
               Interactively delete entries for <basename>.
+  -r, --recent
+              Select one of the past 10 last visited directories
+              and jump to it.
 ```
 
 ## Configuration
