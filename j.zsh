@@ -32,7 +32,7 @@ j() {
         j::echo_err "A directory basename is required."
         return 1
       fi
-      j::list_one "$2"
+      j::list_paths_from_file "$J_DATA_DIR/$2"
     ;;
     -p|--prune)
       if [ -z "$2" ]; then
@@ -68,7 +68,7 @@ j() {
     -r|--recent)
       local directory
       "$J_SELECTOR" --recent "$J_RECENT_FILE"
-      directory=$(j::list_recent | tail -n 1)
+      directory=$(j::list_paths_from_file "$J_RECENT_FILE" | tail -n 1)
       if [ -d "$directory" ]; then
         cd "$directory"
       fi
@@ -108,13 +108,13 @@ j() {
 
       # 1. do selection
       local directory directories
-      directories=($(j::list_one "$dirname"))
+      directories=($(j::list_paths_from_file "$J_DATA_DIR/$dirname"))
       if [[ -n "${directories[2]}" && -n "$J_SELECTOR" ]]; then
         "$J_SELECTOR" "$J_DATA_DIR/$dirname"
       fi
 
       # 2. do regular change
-      directory=$(j::list_one "$dirname" | tail -n 1)
+      directory=$(j::list_paths_from_file "$J_DATA_DIR/$dirname" | tail -n 1)
       if [ -d "$directory" ]; then
         cd "$directory"
       fi
@@ -181,23 +181,15 @@ j::clean_one() {
 }
 
 
-# List paths associated with a single key.
-# Globals:
-#   J_DATA_DIR
+# List paths from a file, which is formatted as a list of date, path pairs,
+# separated by a space.
 # Arguments:
-#   $1 Directory basename
+#   $1 File path
 # Output:
-#   List all directory paths with basename $1 to stdout.
-j::list_one() {
-  if [ -f "$J_DATA_DIR/$1" ]; then
-    cut -d' ' -f2- < "$J_DATA_DIR/$1"
-  fi
-}
-
-
-j::list_recent() {
-  if [ -f "$J_RECENT_FILE" ]; then
-    cut -d' ' -f2- < "$J_RECENT_FILE"
+#   List all directory paths listed in $1 to stdout.
+j::list_paths_from_file() {
+  if [ -f "$1" ]; then
+    cut -d' ' -f2- < "$1"
   fi
 }
 

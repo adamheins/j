@@ -28,7 +28,7 @@
 
   assert "$J_DATA_DIR/$key" is_file
 
-  run j::list_one "$key"
+  run j::list_paths_from_file "$J_DATA_DIR/$key"
 
   assert "$output" same_as "$dir"
 }
@@ -44,7 +44,7 @@
 
   assert "$J_DATA_DIR/$key" is_file
 
-  run j::list_one "$key"
+  run j::list_paths_from_file "$J_DATA_DIR/$key"
 
   assert "$output" same_as "$dir"
 }
@@ -131,7 +131,7 @@
 
   assert "$J_DATA_DIR/$key" is_file
 
-  run j::list_one "$key"
+  run j::list_paths_from_file "$J_DATA_DIR/$key"
 
   assert "$output" same_as "$dir"
 }
@@ -147,7 +147,7 @@
 
   assert "$J_DATA_DIR/$key" is_file
 
-  run j::list_one "$key"
+  run j::list_paths_from_file "$J_DATA_DIR/$key"
 
   assert "$output" same_as "$dir"
 }
@@ -217,7 +217,7 @@
   run j::add_directory "$dir"
 
   # check that the directory is there
-  run j::list_one "$key"
+  run j::list_paths_from_file "$J_DATA_DIR/$key"
   assert "$output" same_as "$dir"
 
   rm -r "$dir"
@@ -238,7 +238,7 @@
   run j::add_directory "$dir"
 
   # check that the directory is there
-  run j::list_one "$key"
+  run j::list_paths_from_file "$J_DATA_DIR/$key"
   assert "$output" same_as "$dir"
 
   # clean up all entries over 0 days old (i.e. all of them)
