@@ -74,7 +74,7 @@ j() {
       fi
     ;;
     -h|--help)
-      echo 'j <basename>'
+      echo 'j [--] <basename>'
       echo 'j [options] [args]'
       echo ''
       echo 'Options:'
@@ -91,21 +91,30 @@ j() {
       echo '              and jump to it.'
     ;;
     *)
-      if ! [ -f "$J_DATA_DIR/$1" ]; then
+      # check for -- guard, which allows jumping to directories whose names
+      # collide with other options
+      local dirname
+      if [ "$1" = "--" ]; then
+        dirname="$2"
+      else
+        dirname="$1"
+      fi
+
+      if ! [ -f "$J_DATA_DIR/$dirname" ]; then
         return 1
       fi
 
-      j::clean_one "$1"
+      j::clean_one "$dirname"
 
       # 1. do selection
       local directory directories
-      directories=($(j::list_one "$1"))
+      directories=($(j::list_one "$dirname"))
       if [[ -n "${directories[2]}" && -n "$J_SELECTOR" ]]; then
-        "$J_SELECTOR" "$J_DATA_DIR/$1"
+        "$J_SELECTOR" "$J_DATA_DIR/$dirname"
       fi
 
       # 2. do regular change
-      directory=$(j::list_one "$1" | tail -n 1)
+      directory=$(j::list_one "$dirname" | tail -n 1)
       if [ -d "$directory" ]; then
         cd "$directory"
       fi
@@ -253,9 +262,11 @@ j::add_directory() {
   echo "$(date +%s) ${1}" >> "$j_path"
 
   # also add to the list of recently visited directories
-  tmp_file=$(mktemp)
-  grep -v "$1$" "$J_RECENT_FILE" | tail -n 9 > "$tmp_file"
-  mv "$tmp_file" "$J_RECENT_FILE"
+  if [ -f "$J_RECENT_FILE" ]; then
+    tmp_file=$(mktemp)
+    grep -v "$1$" "$J_RECENT_FILE" | tail -n 9 > "$tmp_file"
+    mv "$tmp_file" "$J_RECENT_FILE"
+  fi
   echo "$(date +%s) ${1}" >> "$J_RECENT_FILE"
 
   return 0
