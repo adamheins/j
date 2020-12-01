@@ -46,7 +46,7 @@ j() {
       fi
 
       if [ -f "$J_DATA_DIR/$2" ]; then
-        "$J_SELECTOR" --prune "$J_DATA_DIR/$2"
+        "$J_SELECTOR" --prune "$J_DATA_DIR/$2" || return 1
 
         # if the file is now empty, remove the key
         [ -s "$J_DATA_DIR/$2" ] || rm "$J_DATA_DIR/$2"
@@ -66,7 +66,7 @@ j() {
     ;;
     -r|--recent)
       local directory
-      "$J_SELECTOR" --recent "$J_RECENT_FILE"
+      "$J_SELECTOR" --recent "$J_RECENT_FILE" || return 1
       directory=$(j::list_paths_from_file "$J_RECENT_FILE" | tail -n 1)
       if [ -d "$directory" ]; then
         cd "$directory"
@@ -118,7 +118,7 @@ j() {
       local directory directories
       directories=($(j::list_paths_from_file "$J_DATA_DIR/$dirname"))
       if [[ -n "${directories[2]}" && -n "$J_SELECTOR" ]]; then
-        "$J_SELECTOR" "$J_DATA_DIR/$dirname"
+        "$J_SELECTOR" "$J_DATA_DIR/$dirname" || return 1
       fi
 
       # 2. do regular change

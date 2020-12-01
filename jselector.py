@@ -122,6 +122,7 @@ def do_prune(path):
         os.remove(path)
     else:
         write_lines(path, lines)
+    return 0
 
 
 def do_select(path):
@@ -133,7 +134,7 @@ def do_select(path):
 
     idx = curses.wrapper(lister.select)
     if idx == -1:
-        return
+        return 1
 
     # move selected line to the end of the file so it can be identified later
     n = len(lines)
@@ -142,6 +143,7 @@ def do_select(path):
     lines.append(line)
 
     write_lines(path, lines)
+    return 0
 
 
 def do_recent(path):
@@ -155,7 +157,7 @@ def do_recent(path):
 
     idx = curses.wrapper(lister.select)
     if idx == -1:
-        return
+        return 1
 
     # add 1 to account for the first directory being removed from the Lister
     idx += 1
@@ -167,6 +169,7 @@ def do_recent(path):
     lines.append(line)
 
     write_lines(path, lines)
+    return 0
 
 
 def main():
@@ -175,13 +178,13 @@ def main():
 
     if sys.argv[1] == '--prune':
         path = sys.argv[2]
-        do_prune(path)
+        return do_prune(path)
     elif sys.argv[1] == '--recent':
         path = sys.argv[2]
-        do_recent(path)
+        return do_recent(path)
     else:
         path = sys.argv[1]
-        do_select(path)
+        return do_select(path)
 
 
 if __name__ == '__main__':
