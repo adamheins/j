@@ -6,8 +6,7 @@ J_DATA_DIR="$J_DIR/data"
 J_IGNORE_FILE="$J_DIR/ignore"
 J_RECENT_FILE="$J_DIR/recent"
 
-# J_SELECTOR="$J_DIR/jselector.py"
-J_SELECTOR=~/dev/projects/j/jselector.py
+J_SELECTOR="$J_DIR/jselector.py"
 
 
 # Main j function, called by the user.
