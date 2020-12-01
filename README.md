@@ -7,14 +7,18 @@ algorithm.
 
 ## Install
 
-To install, first clone the repo:
+To install, run the following commands. The `install.zsh` script installs j's
+data files to `~/.j`. To change this, export `$J_DIR` before running the
+install script.
 ```
-git clone git@github.com:adamheins/j.git
+git clone git@github.com:adamheins/j.git /path/to/j
+cd /path/to/j
+./install.zsh
 ```
-Run the install script to create and setup the `$J_DIR`. Finally, source
-`j.zsh` by adding something like
+
+Then source `j.zsh` by adding something like
 ```
-source /path/to/j.zsh
+source /path/to/j/j.zsh
 ```
 to your `.zshrc`.
 
@@ -25,6 +29,7 @@ j [--] <basename>
 j [options] [args]
 
 Options:
+  -           Jump to the last visited directory.
   -c, --clean [N]
               Remove all directories that no longer exist or that
               have been accessed more than <N> days ago.

@@ -241,6 +241,7 @@ j::add_directory() {
 
   # don't add the root directory: we can't name it as a file and there is no
   # ambiguity in it's name, so j'ing to it adds no value.
+  # TODO this should be added to the list of recent files
   [[ "$1" == / ]] && return 0
 
   # if the path is ignored, exit
