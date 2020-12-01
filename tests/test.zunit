@@ -206,6 +206,21 @@
 }
 
 
+@test 'cd to previous directory' {
+  dir1="$test_dir/foo"
+  dir2="$test_dir/bar"
+
+  mkdir "$dir1"
+  mkdir "$dir2"
+
+  j::add_directory "$dir1"
+  j::add_directory "$dir2"
+  j -
+
+  assert "$PWD" same_as "$dir1"
+}
+
+
 @test 'clean nonexistent directory' {
   dir="$test_dir/foo"
 

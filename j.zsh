@@ -73,11 +73,20 @@ j() {
         cd "$directory"
       fi
     ;;
+    -)
+      # take second last directory from the list, since the last is the CWD
+      local directory
+      directory=$(j::list_paths_from_file "$J_RECENT_FILE" | tail -n 2 | head -n 1)
+      if [ -d "$directory" ]; then
+        cd "$directory"
+      fi
+    ;;
     -h|--help)
       echo 'j [--] <basename>'
       echo 'j [options] [args]'
       echo ''
       echo 'Options:'
+      echo '  -           Jump to the last visited directory.'
       echo '  -c, --clean [N]'
       echo '              Remove all directories that no longer exist or that'
       echo '              have been accessed more than N days ago.'
