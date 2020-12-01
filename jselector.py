@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import curses
 import os
+import pwd
 import sys
 
 
@@ -90,12 +91,24 @@ def write_lines(path, lines):
         f.write('\n'.join(lines))
 
 
+def get_home_dir():
+    ''' Get the path to the current user's home directory. '''
+    return pwd.getpwuid(os.getuid()).pw_dir
+
+
+def prettify_paths(paths):
+    ''' Prettify full paths for viewing. '''
+    home_dir = get_home_dir()
+    paths = [path.replace(home_dir, '~') for path in paths]
+    return paths
+
+
 def do_prune(path):
     ''' Prune directories from the list in the file at the given path. '''
     lines = read_lines(path)
     lines_reversed = lines[::-1]
     files = [line.split()[1] for line in lines_reversed]
-    lister = Lister(files, PRUNE_INSTR)
+    lister = Lister(prettify_paths(files), PRUNE_INSTR)
 
     removed = curses.wrapper(lister.prune)
 
@@ -116,7 +129,7 @@ def do_select(path):
     lines = read_lines(path)
     lines_reversed = lines[::-1]
     files = [line.split()[1] for line in lines_reversed]
-    lister = Lister(files, SELECT_INSTR)
+    lister = Lister(prettify_paths(files), SELECT_INSTR)
 
     idx = curses.wrapper(lister.select)
     if idx == -1:
@@ -138,7 +151,7 @@ def do_recent(path):
     files = [line.split()[1] for line in lines_reversed]
 
     # don't pass the first directory, which is the CWD
-    lister = Lister(files[1:], SELECT_INSTR)
+    lister = Lister(prettify_paths(files[1:]), SELECT_INSTR)
 
     idx = curses.wrapper(lister.select)
     if idx == -1:
