@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import curses
 import os
-import pwd
+from pathlib import Path
 import sys
 
 
@@ -91,14 +91,9 @@ def write_lines(path, lines):
         f.write('\n'.join(lines))
 
 
-def get_home_dir():
-    ''' Get the path to the current user's home directory. '''
-    return pwd.getpwuid(os.getuid()).pw_dir
-
-
 def prettify_paths(paths):
     ''' Prettify full paths for viewing. '''
-    home_dir = get_home_dir()
+    home_dir = str(Path.home())
     paths = [path.replace(home_dir, '~') for path in paths]
     return paths
 
