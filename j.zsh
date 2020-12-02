@@ -5,8 +5,9 @@
 J_DATA_DIR="$J_DIR/data"
 J_IGNORE_FILE="$J_DIR/ignore"
 J_RECENT_FILE="$J_DIR/recent"
-
 J_SELECTOR="$J_DIR/jselector.py"
+
+J_NUM_RECENT=10
 
 
 # Main j function, called by the user.
@@ -227,6 +228,36 @@ j::is_ignored() {
 }
 
 
+# Add a directory path to a file in j.
+# Arguments:
+#   $1 Path to be added
+#   $2 File to add to
+#   $3 Limit for number of entries in the file (optional)
+# Outputs:
+#   Writes time and path to a file in the $J_DIR.
+j::append_path_to_file() {
+  local tmp_file
+
+  # remove existing entry of this path
+  if [ -f "$2" ]; then
+    tmp_file=$(mktemp)
+
+    # keep only unique entries
+    grep -v "$1$" "$2" > "$tmp_file"
+
+    # optionally limit the number of entries kept
+    if [ -n "$3" ]; then
+      tail -n "$3" "$tmp_file" > "$2"
+    else
+      mv "$tmp_file" "$2"
+    fi
+  fi
+
+  # append time and path to the file
+  echo "$(date +%s) ${1}" >> "$2"
+}
+
+
 # Add a directory to the j database.
 # Globals:
 #   J_IGNORE_FILE
@@ -234,41 +265,24 @@ j::is_ignored() {
 # Arguments:
 #   $1 Path to directory
 # Outputs:
-#   Writes time and path to a file in the j data directory.
+#   Writes time and path to a file in the $J_DIR.
 j::add_directory() {
   # exit if directory doesn't exist
   [ -d "$1" ] || return 1
-
-  # don't add the root directory: we can't name it as a file and there is no
-  # ambiguity in it's name, so j'ing to it adds no value.
-  # TODO this should be added to the list of recent files
-  [[ "$1" == / ]] && return 0
 
   # if the path is ignored, exit
   if [ -f "$J_IGNORE_FILE" ]; then
     j::is_ignored "$1" && return 0
   fi
 
-  local j_path tmp_file
-  j_path="$J_DATA_DIR/$(basename $1)"
-
-  # remove existing entry of this path
-  if [ -f "$j_path" ]; then
-    tmp_file=$(mktemp)
-    grep -v "$1$" "$j_path" > "$tmp_file"
-    mv "$tmp_file" "$j_path"
+  # Don't add the root directory: we can't name it as a file and there is no
+  # ambiguity in it's name, so j'ing to it adds no value. We do however add it
+  # to the list of recent files.
+  if [ "$1" != / ]; then
+    j::append_path_to_file "$1" "$J_DATA_DIR/$(basename $1)"
   fi
 
-  # append time and path to the file
-  echo "$(date +%s) ${1}" >> "$j_path"
-
-  # also add to the list of recently visited directories
-  if [ -f "$J_RECENT_FILE" ]; then
-    tmp_file=$(mktemp)
-    grep -v "$1$" "$J_RECENT_FILE" | tail -n 9 > "$tmp_file"
-    mv "$tmp_file" "$J_RECENT_FILE"
-  fi
-  echo "$(date +%s) ${1}" >> "$J_RECENT_FILE"
+  j::append_path_to_file "$1" "$J_RECENT_FILE" "$J_NUM_RECENT"
 
   return 0
 }
