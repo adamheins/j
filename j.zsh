@@ -209,7 +209,7 @@ j::list_paths_from_file() {
 # Output:
 #   Print all directory basenames to stdout.
 j::list_all() {
-  ls "$J_DATA_DIR"
+  find "$J_DATA_DIR" -type f -printf '%f\n'
 }
 
 
