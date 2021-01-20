@@ -1,9 +1,25 @@
 # j
 
-A `zsh` tool for jumping to previously-visited directories by name. If there
-are multiple matches, the user selects the correct absolute path from a list. A
-cousin of [z](https://github.com/rupa/z) with a more obvious directory-priority
-algorithm.
+My version of a directory navigation tool. Inspired by but generally simpler
+(and I think a bit more intuitive) than others like
+[autojump](https://github.com/wting/autojump) and
+[z](https://github.com/rupa/z). Currently zsh-only.
+
+Instead of regex searching a list of directories weighted by "frecency" (recent + frequency),
+I prefer to have a list of visited directories and just tab complete their
+basenames. This is what `j` does. I typically remember the basename of the
+directory I want to visit, just not the path, so this works very well for me.
+
+When there are multiple directories with the same basename, a curses-based
+interface is opened to select one from a list. The list is ordered by time of
+last visit, so it is very easy to return to recent directories. Overall, I like
+this process because it is very predictable: I know I'm going to go where I
+expect.
+
+I wrote a bit about the development process
+[here](https://adamheins.com/blog/j-a-directory-navigation-tool). This is of
+course mostly just a written-for-fun tool, that I happen to find useful. If you
+do as well, great! 
 
 ## Install
 
