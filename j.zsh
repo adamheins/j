@@ -46,6 +46,10 @@ j() {
         return 1
       fi
 
+      # TODO to do this, we need multi-select with fzf, then delete all lines
+      # in the file matching those returned
+      # finally we keep the check to delete the file
+
       if [ -f "$J_DATA_DIR/$2" ]; then
         "$J_SELECTOR" --prune "$J_DATA_DIR/$2" || return 1
 
@@ -67,8 +71,9 @@ j() {
     ;;
     -r|--recent)
       local directory
-      "$J_SELECTOR" --recent "$J_RECENT_FILE" || return 1
-      directory=$(j::list_paths_from_file "$J_RECENT_FILE" | tail -n 1)
+      # cut off the first line, because that is the CWD, the select directory
+      # with fzf
+      directory=$(j::list_paths_from_file "$J_RECENT_FILE" | tail -n "+2" | fzf --no-multi)
       if [ -d "$directory" ]; then
         cd "$directory"
       fi
@@ -76,7 +81,7 @@ j() {
     -)
       # take second last directory from the list, since the last is the CWD
       local directory
-      directory=$(j::list_paths_from_file "$J_RECENT_FILE" | tail -n 2 | head -n 1)
+      directory=$(j::list_paths_from_file "$J_RECENT_FILE" | head -n 2 | tail -n 1)
       if [ -d "$directory" ]; then
         cd "$directory"
       fi
@@ -115,15 +120,17 @@ j() {
 
       j::clean_one "$dirname"
 
-      # 1. do selection
+      # if there are multiple directories with the same basename, the user
+      # selects one with fzf
       local directory directories
-      directories=($(j::list_paths_from_file "$J_DATA_DIR/$dirname"))
-      if [[ -n "${directories[2]}" && -n "$J_SELECTOR" ]]; then
-        "$J_SELECTOR" "$J_DATA_DIR/$dirname" || return 1
-      fi
+      # directories=$(j::list_paths_from_file "$J_DATA_DIR/$dirname")
+      directory=$(j::list_paths_from_file "$J_DATA_DIR/$dirname" | fzf --select-1)
+      # if [[ -n "${directories[2]}" ]]; then
+      #   directory=$(printf "%s\n" "${directories[@]}" | fzf)
+      # else
+      #   directory="${directories[1]}"
+      # fi
 
-      # 2. do regular change
-      directory=$(j::list_paths_from_file "$J_DATA_DIR/$dirname" | tail -n 1)
       if [ -d "$directory" ]; then
         cd "$directory"
       fi
@@ -189,6 +196,13 @@ j::clean_one() {
   fi
 }
 
+j::cut_path() {
+  while read line; do
+    echo "${(@)line:1}"
+    # cut -d' ' -f2- "$line"
+  done
+}
+
 
 # List paths from a file, which is formatted as a list of date, path pairs,
 # separated by a space.
@@ -198,7 +212,8 @@ j::clean_one() {
 #   List all directory paths listed in $1 to stdout.
 j::list_paths_from_file() {
   if [ -f "$1" ]; then
-    cut -d' ' -f2- < "$1"
+    tac "$1" | cut -d' ' -f2-
+    # cut -d' ' -f2- < "$1"
   fi
 }
 
