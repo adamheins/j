@@ -6,10 +6,6 @@
   mkdir -p "$J_DIR/data"
 
   load ../j.zsh
-
-  # we need to manually clear the J_SELECTOR since it cannot be used
-  # non-interactively.
-  J_SELECTOR=
 }
 
 
