@@ -5,7 +5,6 @@
 J_DATA_DIR="$J_DIR/data"
 J_IGNORE_FILE="$J_DIR/ignore"
 J_RECENT_FILE="$J_DIR/recent"
-J_SELECTOR="$J_DIR/jselector.py"
 
 J_NUM_RECENT=10
 
@@ -13,7 +12,6 @@ J_NUM_RECENT=10
 # Main j function, called by the user.
 # Globals:
 #   J_DATA_DIR
-#   J_SELECTOR
 # Arguments:
 #   $1 Flag or directory basename.
 #   $2 If $1 is a flag, then this is a directory basename. Otherwise not used.
@@ -24,6 +22,12 @@ j() {
   if [ -z "$1" ]; then
     cd
     return
+  fi
+
+  # ensure fzf is installed
+  if [ -z $(which fzf) ]; then
+    echo "fzf not found; aborting"
+    return 1
   fi
 
   case "$1" in
@@ -40,18 +44,14 @@ j() {
         return 1
       fi
 
-      # Check if selector is found.
-      if [ -z "$J_SELECTOR" ]; then
-        j::echo_err "Selector not found."
-        return 1
-      fi
-
-      # TODO to do this, we need multi-select with fzf, then delete all lines
-      # in the file matching those returned
-      # finally we keep the check to delete the file
-
       if [ -f "$J_DATA_DIR/$2" ]; then
-        "$J_SELECTOR" --prune "$J_DATA_DIR/$2" || return 1
+        # select lines to delete with fzf, then find all lines *not* matching
+        # them with grep
+        local lines
+        lines=$(grep -Fv -f <(j::list_paths_from_file "$J_DATA_DIR/$2" | fzf --multi) "$J_DATA_DIR/$2")
+
+        # rewrite the file with only those lines
+        echo $lines > "$J_DATA_DIR/$2"
 
         # if the file is now empty, remove the key
         [ -s "$J_DATA_DIR/$2" ] || rm "$J_DATA_DIR/$2"
@@ -73,6 +73,7 @@ j() {
       local directory
       # cut off the first line, because that is the CWD, the select directory
       # with fzf
+      # TODO shorten /home/user to ~
       directory=$(j::list_paths_from_file "$J_RECENT_FILE" | tail -n "+2" | fzf --no-multi)
       if [ -d "$directory" ]; then
         cd "$directory"
@@ -189,14 +190,6 @@ j::clean_one() {
   fi
 }
 
-j::cut_path() {
-  while read line; do
-    echo "${(@)line:1}"
-    # cut -d' ' -f2- "$line"
-  done
-}
-
-
 # List paths from a file, which is formatted as a list of date, path pairs,
 # separated by a space.
 # Arguments:
@@ -206,7 +199,6 @@ j::cut_path() {
 j::list_paths_from_file() {
   if [ -f "$1" ]; then
     tac "$1" | cut -d' ' -f2-
-    # cut -d' ' -f2- < "$1"
   fi
 }
 
