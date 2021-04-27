@@ -122,15 +122,8 @@ j() {
 
       # if there are multiple directories with the same basename, the user
       # selects one with fzf
-      local directory directories
-      # directories=$(j::list_paths_from_file "$J_DATA_DIR/$dirname")
+      local directory
       directory=$(j::list_paths_from_file "$J_DATA_DIR/$dirname" | fzf --select-1)
-      # if [[ -n "${directories[2]}" ]]; then
-      #   directory=$(printf "%s\n" "${directories[@]}" | fzf)
-      # else
-      #   directory="${directories[1]}"
-      # fi
-
       if [ -d "$directory" ]; then
         cd "$directory"
       fi
