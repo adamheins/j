@@ -10,11 +10,11 @@ I prefer to have a list of visited directories and just tab complete their
 basenames. This is what `j` does. I typically remember the basename of the
 directory I want to visit, just not the path, so this works very well for me.
 
-When there are multiple directories with the same basename, a curses-based
-interface is opened to select one from a list. The list is ordered by time of
-last visit, so it is very easy to return to recent directories. Overall, I like
-this process because it is very predictable: I know I'm going to go where I
-expect.
+When there are multiple directories with the same basename,
+[fzf](https://github.com/junegunn/fzf) is used to select the desired one. The
+list is ordered by time of last visit, so it is very easy to return to recent
+directories. Overall, I like this process because it is very predictable: I
+know I'm going to go where I expect.
 
 I wrote a bit about the development process
 [here](https://adamheins.com/blog/j-a-directory-navigation-tool). This is of
@@ -23,7 +23,9 @@ do as well, great!
 
 ## Install
 
-To install, run the following commands. The `install.zsh` script installs j's
+First, install [fzf](https://github.com/junegunn/fzf).
+
+Next, run the following commands. The `install.zsh` script installs j's
 data files to `~/.j`. To change this, export `$J_DIR` before running the
 install script.
 ```
